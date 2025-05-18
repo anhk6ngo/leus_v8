@@ -1,0 +1,336 @@
+﻿@page "/role"
+@attribute [StreamRendering]
+@attribute [Authorize(Roles = RoleConstants.AdministratorRole)]
+@inject IRoleService RoleService
+<PageTitle>Roles And Set Rights</PageTitle>
+<SectionContent SectionName="TopRight">
+    <button class="btn btn-custom" @onclick="ShowRightForm">@(SetRight ? "Roles" : "Set Rights")</button>
+</SectionContent>
+@if (IsLoading)
+{
+    <LoadingRotate/>
+}
+@if (SetRight)
+{
+    <Card OnlyCardBody="true">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="row">
+                    <div class="col-md-12 mb-5">
+                        <label class="form-label">User</label>
+                        <select class="form-select" id="endUser">
+                            @foreach (var iUser in SelectUsers)
+                            {
+                                <option value="@iUser.id">@iUser.text</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-12 mb-5">
+                        <label class="form-label">Roles</label>
+                        <select class="form-select" id="role" multiple>
+                            @foreach (var iRole in Data!)
+                            {
+                                <option value="@iRole.Name">@iRole.Name</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="d-flex flex-stack">
+                        <div class="form-check form-check-custom form-check-solid">
+                            <input class="form-check-input" type="radio" checked="@(ActionRight == 0)"
+                                   @onchange="@(() => ActionRight = 0)" id="gMethod"/>
+                            <label class="form-check-label" for="gMethod">
+                                View Roles on User
+                            </label>
+                        </div>
+                        <div class="form-check form-check-custom form-check-solid">
+                            <input class="form-check-input" type="radio" checked="@(ActionRight == 1)"
+                                   @onchange="@(() => ActionRight = 1)" id="gMethod1"/>
+                            <label class="form-check-label" for="gMethod1">
+                                Set Role for User
+                            </label>
+                        </div>
+                        <div class="form-check form-check-custom form-check-solid">
+                            <input class="form-check-input" type="radio" checked="@(ActionRight == 2)"
+                                   @onchange="@(() => ActionRight = 2)" id="gMethod2"/>
+                            <label class="form-check-label" for="gMethod2">
+                                Remove Role on User
+                            </label>
+                        </div>
+                        <div class="form-check form-check-custom form-check-solid">
+                            <input class="form-check-input" type="radio" checked="@(ActionRight == 3)"
+                                   @onchange="@(() => ActionRight = 3)" id="gMethod2"/>
+                            <label class="form-check-label" for="gMethod2">
+                                Update Station
+                            </label>
+                        </div>
+                        <button class="btn btn-success" @onclick="RoleAction">
+                            <i class="ki-duotone ki-security-user">
+                                <span class="path1"></span>
+                                <span class="path2"></span>
+                            </i> Do it
+                        </button>
+                    </div>
+                </div>
+                <div class="row">
+                    <label class="form-label">Station</label>
+                    <input @bind="data.Description" class="form-control"/>
+                </div>
+            </div>
+            <div class="col-md-4">
+                @if (UserInRoles is { Count: > 0 })
+                {
+                    <h4>User have role</h4>
+                    foreach (var iRole in UserInRoles)
+                    {
+                        <p>@iRole.text</p>
+                    }
+                }
+            </div>
+        </div>
+    </Card>
+}
+else
+{
+    @if (Data != null)
+    {
+        <h1>List of Roles</h1>
+        @if (Data is { Count: > 0 })
+        {
+            <div class="row g-5 g-xl-9">
+                @foreach (var item in Data)
+                {
+                    <div class="col-md-4">
+                        <div class="card card-flush h-md-100">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    <h2>@item.Name</h2>
+                                </div>
+                            </div>
+                            <div class="card-body pt-1">
+                                <div class="fw-bold text-gray-600 mb-5">Total users with this role: @item.Users</div>
+                                <p>@item.Description</p>
+                            </div>
+                            <div class="card-footer flex-wrap pt-0">
+                                <button type="button" class="btn btn-light btn-active-primary my-1 me-2"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#app_modal_1" @onclick="() => ActionData(item.id, 4)">
+                                    View Users
+                                </button>
+                                <button type="button" class="btn btn-light btn-active-light-primary my-1"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#app_modal_1" @onclick="() => ActionData(item.id, 1)">
+                                    Edit Role
+                                </button>
+                                <button type="button" class="btn btn-light-danger my-1" data-bs-toggle="modal"
+                                        data-bs-target="#app_modal_1" @onclick="() => ActionData(item.id, 2)">
+                                    Delete Role
+                                </button>
+                                <button type="button" class="btn btn-light-warning my-1" data-bs-toggle="modal"
+                                        data-bs-target="#app_modal_1" @onclick="() => ActionData(item.id, 3)">
+                                    Clear Users
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+                <div class="col-md-3">
+                    <div class="card h-md-100">
+                        <div class="card-body d-flex flex-center">
+                            <button class="btn btn-clear d-flex flex-column flex-center" data-bs-toggle="modal"
+                                    data-bs-target="#app_modal_1"
+                                    @onclick="() => ActionData(string.Empty, 0)">
+                                <img src="images/addRole.png" alt="" class="mw-100 mh-150px mb-7"/>
+                                <div class="fw-bold fs-3 text-gray-600 text-hover-primary">Add New Role</div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+}
+
+<CustomModal Title="@($"{Title} Role")" OnClickCallback="SaveData" HideSaveButton="@(iAction == 4)">
+    @if (iAction == 4)
+    {
+        @if (ViewUsers is { Count: > 0 })
+        {
+            <h4>Role: @data.Name</h4>
+            <div class="d-flex flex-column text-gray-600 scroll mh-500px">
+                @foreach (var iUser in ViewUsers)
+                {
+                    <div class="d-flex align-items-center py-2">
+                        <span class="bullet bg-primary me-3"></span> @iUser.text
+                    </div>
+                }
+            </div>
+        }
+    }
+    else
+    {
+        <EditForm Model="data" class="form">
+            <FluentValidationValidator @ref="_fluentValidationValidator"/>
+            <div class="row mb-7">
+                <label class="required">Role Name</label>
+                <InputText type="text" @bind-Value="@data!.Name" class="form-control maxlength" maxlength="255"/>
+                <ValidationMessage For="@(() => data.Name)"/>
+            </div>
+            <div class="row mb-7">
+                <label class="required">Description</label>
+                <InputText type="text" @bind-Value="@data.Description" class="form-control maxlength" maxlength="255"/>
+                <ValidationMessage For="@(() => data.Description)"/>
+            </div>
+        </EditForm>
+    }
+
+</CustomModal>
+
+@code {
+    private List<RoleUserDto>? Data;
+    private List<RoleUserDto> SelectUsers = new();
+    private List<RoleUserDto> UserInRoles = new();
+    private List<RoleUserDto> ViewUsers = new();
+    private readonly IList<RoleUserDto> _emptyList = new List<RoleUserDto>();
+    private bool SetRight { get; set; }
+    private int ActionRight { get; set; }
+    private RoleUserDto data { get; set; } = new();
+    private string Title { get; set; } = "Add new";
+    private int iAction { get; set; } = 0;
+    private FluentValidationValidator _fluentValidationValidator = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        IsLoading = true;
+        var lstRole = await RoleService.GetAllAsync();
+        Data = lstRole.Select(s => new RoleUserDto()
+        {
+            Description = s.Description,
+            id = s.Id,
+            Name = s.Name,
+            Users = s.UserRoles!.Count
+        }).ToList();
+        IsLoading = false;
+    }
+
+    private async Task ShowRightForm()
+    {
+        SetRight = !SetRight;
+        if (SetRight && SelectUsers is { Count: 0 })
+        {
+            var lstRole = await RoleService.GetByAsync("", 0, $"{DisplayConstants.Full}", $"{DisplayConstants.Full}");
+            SelectUsers = lstRole.Adapt<List<RoleUserDto>>();
+        }
+
+        StateHasChanged();
+        if (SetRight)
+        {
+            data.id = SelectUsers[0].id;
+            await CallJsWithCallBack("setSelect2aIndex", "#endUser", _emptyList, 0);
+            await CallJsWithCallBack("setSelect2aIndex", "#role", _emptyList, 1);
+        }
+    }
+
+    private async Task SaveData()
+    {
+        var isValid = _fluentValidationValidator.Validate(o => o.IncludeAllRuleSets());
+        if (!isValid) return;
+        var blnResult = false;
+        switch (iAction)
+        {
+            case 3:
+                if (data.Users == 0) return;
+                blnResult = await RoleService.SetRightsAsync(data.id, data.id!, ActionCommandType.Edit);
+                if (blnResult)
+                {
+                    data.Users = 0;
+                }
+
+                break;
+            default:
+                var item = data.Adapt<CustomRole>();
+                item.Id = $"{data.id}";
+                var sResult = await RoleService.AddEditRoleAsync(item, (ActionCommandType)iAction);
+                if ($"{sResult}" != "")
+                {
+                    blnResult = true;
+                    switch (iAction)
+                    {
+                        case 0:
+                            data.id = sResult;
+                            Data?.Add(data);
+                            break;
+                        case 2:
+                            Data?.Remove(data);
+                            break;
+                    }
+                }
+
+                break;
+        }
+
+        await ShowAlert(blnResult ? 0 : 1);
+        await ToggleModal();
+    }
+
+    private async Task RoleAction()
+    {
+        var blnResult = true;
+        switch (ActionRight)
+        {
+            case 0:
+                var tmp = await RoleService.GetByAsync($"{data.id}", EFindRole.UserHasRole);
+                UserInRoles = tmp.Adapt<List<RoleUserDto>>();
+                StateHasChanged();
+                break;
+            default:
+                blnResult = await RoleService.SetRightsAsync((ActionRight == 3 ? data.Description : data.Name),
+                    $"{data.id}", ActionRight == 1 ? ActionCommandType.Add : ActionRight == 3 ? ActionCommandType.Copy : ActionCommandType.Delete);
+                break;
+        }
+
+        await ShowAlert(blnResult ? 0 : 1);
+    }
+
+    private async Task ActionData(string? itemId, int action)
+    {
+        data = action switch
+        {
+            0 => new RoleUserDto(),
+            _ => Data?.FirstOrDefault(w => w.id == itemId)!
+        };
+        iAction = action;
+        Title = action switch
+        {
+            1 => "Edit",
+            2 => "Delete",
+            3 => $"Clear All Users on {data.Name} ",
+            4 => $"View Users in Role {data.Name}",
+            _ => "Add new"
+        };
+        if (action == 4)
+        {
+            var tmp = await RoleService.GetByAsync($"{data.Name}", EFindRole.UserInRole);
+            ViewUsers = tmp.Adapt<List<RoleUserDto>>();
+        }
+
+        await ToggleModal();
+        await SetMaxLength();
+    }
+
+    [JSInvokable]
+    public void Select2ACallbackIndex(string value, string nameControl, int index)
+    {
+        switch (index)
+        {
+            case 0:
+                data.id = value;
+                break;
+            case 1:
+                data.Name = value;
+                break;
+        }
+    }
+
+}

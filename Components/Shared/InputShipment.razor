@@ -1,0 +1,531 @@
+﻿<SectionContent SectionName="@NavConstants.TopRight">
+    <div class="d-flex flex-row-auto g-2">
+        @if (EditData)
+        {
+            <button class="btn btn-sm btn-light me-2" @onclick="() => Call(ActionCommandType.Cancel)">Cancel</button>
+            <button class="btn btn-sm btn-primary" @onclick="() => Call(ActionCommandType.Edit)">Save Change</button>
+        }
+        else
+        {
+            <button class="btn btn-sm btn-primary me-2" @onclick="() => Call(ActionCommandType.Confirm)">Confirm
+            </button>
+            <button class="btn btn-sm btn-success" @onclick="() => Call(ActionCommandType.Add)">Save and Continuous
+            </button>
+        }
+    </div>
+</SectionContent>
+
+<EditForm Model="Data" class="form">
+    <FluentValidationValidator @ref="_fluentValidationValidator"/>
+    <div class="card shadow-sm mb-6">
+        <div class="card-header collapsible cursor-pointer rotate" data-bs-toggle="collapse"
+             data-bs-target="#card_basic">
+            <div class="card-title">
+                <h2>Basic Info</h2>
+            </div>
+            <div class="card-toolbar rotate-180">
+                <i class="ki-duotone ki-down fs-1"></i>
+            </div>
+        </div>
+        <div id="card_basic" class="collapse show">
+            <div class="card-body">
+                <div class="row mb-6">
+                    <div class="col-md-2">
+                        <label class="form-label required">Entry Point</label>
+                        <InputText type="text" @bind-Value="@Data.EntryPoint" class="form-control maxlength"
+                                   maxlength="50" id="entrypoint"/>
+                        <ValidationMessage For="@(() => Data.EntryPoint)"/>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label required">Service</label>
+                        <select class="form-select bg-light-warning" data-control="select2" data-id="service">
+                            <option value="">Select Item</option>
+                            @if (LService is { Count: > 0 })
+                            {
+                                foreach (var item in LService)
+                                {
+                                    <option value="@item.ServiceCode"
+                                            selected="@(item.ServiceCode == Data.ServiceCode)">@item.ServiceName</option>
+                                }
+                            }
+                        </select>
+                        <ValidationMessage For="@(() => Data.ServiceCode)"/>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Ref 2</label>
+                        <InputText type="text" @bind-Value="@Data.ReferenceId2" class="form-control maxlength"
+                                   maxlength="50"/>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Ref 3</label>
+                        <InputText type="text" @bind-Value="@Data.ReferenceId3" class="form-control maxlength"
+                                   maxlength="50"/>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label"> Signature Required</label>
+                        <div class="d-flex flex-stack justify-content-start mt-4">
+                            <div class="form-check form-check-custom form-check-solid px-2">
+                                <input class="form-check-input" type="radio"
+                                       checked="@(Data.SignatureRequired == "Yes")"
+                                       @onchange="@(() => { Data.SignatureRequired = "Yes"; })" id="gSign"/>
+                                <label class="form-check-label" for="gSign">
+                                    Yes
+                                </label>
+                            </div>
+                            <div class="form-check form-check-custom form-check-solid px-2">
+                                <input class="form-check-input" type="radio" checked="@(Data.SignatureRequired == "No")"
+                                       @onchange="@(() => { Data.SignatureRequired = "No"; })" id="gSign1"/>
+                                <label class="form-check-label" for="gSign1">
+                                    No
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-6">
+                    <div class="col-md-2">
+                        <label class="form-label">Duty Paid</label>
+                        <div class="d-flex flex-stack justify-content-start mt-4">
+                            <div class="form-check form-check-custom form-check-solid px-2">
+                                <input class="form-check-input" type="radio" checked="@(Data.DutyType == "DDP")"
+                                       @onchange="@(() => { Data.DutyType = "DDP"; })" id="gDuty"/>
+                                <label class="form-check-label" for="gDuty">
+                                    DDP
+                                </label>
+                            </div>
+                            <div class="form-check form-check-custom form-check-solid px-2">
+                                <input class="form-check-input" type="radio" checked="@(Data.DutyType == "DDU")"
+                                       @onchange="@(() => { Data.DutyType = "DDU"; })" id="gDuty1"/>
+                                <label class="form-check-label" for="gDuty1">
+                                    DDU
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label required">Package Type</label>
+                        <select class="form-select bg-light-warning" data-control="select2" data-id="package">
+                            <option value="doc" selected="@(Data.PackageType == "doc")">Document</option>
+                            <option value="pak" selected="@(Data.PackageType == "pak")">Package</option>
+                            <option value="wpx" selected="@(Data.PackageType == "wpx")">Package/Box</option>
+                        </select>
+                        <ValidationMessage For="@(() => Data.PackageType)"/>
+                    </div>
+                    <div class="col-md-2">
+                        <InputUnitType SelectItem="@Data.UnitType"/>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card shadow-sm mb-6">
+        <div class="card-header collapsible cursor-pointer rotate" data-bs-toggle="collapse"
+             data-bs-target="#card_basic1">
+            <div class="card-title">
+                <h2>Consignee Info</h2>
+            </div>
+            <div class="card-toolbar rotate-180">
+                <i class="ki-duotone ki-down fs-1"></i>
+            </div>
+        </div>
+        <div id="card_basic1" class="collapse show">
+            <div class="card-body">
+                <InputAddress Data="Data.Consignee" LCountry="LCountry"/>
+            </div>
+        </div>
+    </div>
+    <div class="card shadow-sm mb-6">
+        <div class="card-header collapsible cursor-pointer rotate" data-bs-toggle="collapse"
+             data-bs-target="#card_basic2">
+            <div class="card-title">
+                <h2>Shipper Info</h2>
+            </div>
+            <div class="card-toolbar rotate-180">
+
+                <i class="ki-duotone ki-down fs-1"></i>
+            </div>
+        </div>
+        <div id="card_basic2" class="collapse">
+            <div class="card-body">
+                <button class="btn btn-primary mb-6" @onclick="ShowStore">Select Stores</button>
+                <InputAddress Data="Data.Shipper" LCountry="LCountry" ForAddress="shipper"/>
+            </div>
+        </div>
+    </div>
+    <div class="card shadow-sm mb-6">
+        <div class="card-header collapsible cursor-pointer rotate" data-bs-toggle="collapse"
+             data-bs-target="#card_basic4">
+            <div class="card-title">
+                <h2>Packages Info
+                    <span>Unit: @(Data.UnitType == 2 ? "cm/kg" : Data.UnitType == 1 ? "inch/oz" : "inch/lb")</span></h2>
+            </div>
+            <div class="card-toolbar rotate-180">
+                <i class="ki-duotone ki-down fs-1"></i>
+            </div>
+        </div>
+        <div id="card_basic4" class="collapse show">
+            <div class="card-body">
+                <DetailTemplate TItem="CManifestBox" Items="Data.Boxes" CaptionAdd="Add New Box"
+                                OnClickCallback="() => { AddEditBox(new CManifestBox(), 0); }" HasScroll="false">
+                    <RowTemplate Context="item">
+                        <div class="row p-2 @(item.iIndex % 2 == 1 ? "bg-gray-200" : "")">
+                            <div class="col-md-2">
+                                <label class="form-label">Height</label>
+                                <input @bind="@item.data.Height" class="form-control numberinputmask"/>
+                                <ValidationMessage For="@(() => item.data.Height)"/>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Width</label>
+                                <input @bind="@item.data.Width" class="form-control numberinputmask"/>
+                                <ValidationMessage For="@(() => item.data.Width)"/>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Length</label>
+                                <input @bind="@item.data.Length" class="form-control numberinputmask"/>
+                                <ValidationMessage For="@(() => item.data.Length)"/>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Weight</label>
+                                <input @bind="@item.data.Weight" class="form-control numberinputmask"/>
+                                <ValidationMessage For="@(() => item.data.Weight)"/>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Quantity</label>
+                                <input @bind="@item.data.BoxQty" class="form-control numberinputmask"/>
+                                <ValidationMessage For="@(() => item.data.BoxQty)"/>
+                            </div>
+                            <div class="col-md-2 mt-8">
+                                <div class="d-flex justify-content-evenly">
+                                    <span class="btn btn-sm btn-icon btn-danger"
+                                          @onclick="() => AddEditBox(item.data, 1)">
+                                        <i class="fas fa-trash"></i>
+                                    </span>
+                                    <span class="btn btn-sm btn-icon btn-warning"
+                                          @onclick="() => AddEditBox(item.data, 2)">
+                                        <i class="fas fa-copy"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </RowTemplate>
+                </DetailTemplate>
+            </div>
+        </div>
+    </div>
+    <div class="card shadow-sm mb-6">
+        <div class="card-header collapsible cursor-pointer rotate" data-bs-toggle="collapse"
+             data-bs-target="#card_basic5">
+            <div class="card-title">
+                <h2>Customs Info</h2>
+            </div>
+            <div class="card-toolbar rotate-180">
+                <i class="ki-duotone ki-down fs-1"></i>
+            </div>
+        </div>
+        <div id="card_basic5" class="collapse show">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-1">
+                        <label class="form-label required">Currency</label>
+                        <InputText type="text" @bind-Value="@Data.CustomsCurrency" class="form-control maxlength"
+                                   maxlength="3"/>
+                        <ValidationMessage For="@(() => Data.EntryPoint)"/>
+                    </div>
+                </div>
+
+                <DetailTemplate TItem="CCustom" Items="Data.Customs" CaptionAdd="Add New Box"
+                                OnClickCallback="() => { AddEditCustom(new CCustom(), 0); }" HasScroll="false">
+                    <RowTemplate Context="item">
+                        <div class="row p-2 @(item.iIndex % 2 == 1 ? "bg-gray-200" : "")">
+                            <div class="col-md-3">
+                                <label class="form-label">Description Dest</label>
+                                <input @bind="@item.data.DestDescription" class="form-control maxlength"
+                                       maxlength="50"/>
+                                <ValidationMessage For="@(() => item.data.DestDescription)"/>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Description Local</label>
+                                <input @bind="@item.data.LocalDescription" class="form-control maxlength"
+                                       maxlength="50"/>
+                                <ValidationMessage For="@(() => item.data.LocalDescription)"/>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Sku</label>
+                                <input @bind="@item.data.Sku" class="form-control maxlength" maxlength="50"/>
+                                <ValidationMessage For="@(() => item.data.Sku)"/>
+                            </div>
+                            <div class="col-md-1">
+                                <label class="form-label">Quantity</label>
+                                <input @bind="@item.data.Qty" class="form-control numberinputmask"/>
+                                <ValidationMessage For="@(() => item.data.Qty)"/>
+                            </div>
+                            <div class="col-md-1">
+                                <label class="form-label">Unit Weight</label>
+                                <input @bind="@item.data.UnitWeight" class="form-control numberinputmask"/>
+                                <ValidationMessage For="@(() => item.data.UnitWeight)"/>
+                            </div>
+                            <div class="col-md-1">
+                                <label class="form-label">Unit Value</label>
+                                <input @bind="@item.data.UnitValue" class="form-control numberinputmask"/>
+                                <ValidationMessage For="@(() => item.data.UnitValue)"/>
+                            </div>
+                            <div class="col-md-1 mt-8">
+                                <div class="d-flex justify-content-between">
+                                    <span class="btn btn-sm btn-icon btn-danger"
+                                          @onclick="() => AddEditCustom(item.data, 1)">
+                                        <i class="fas fa-trash"></i>
+                                    </span>
+                                    <span class="btn btn-sm btn-icon btn-warning"
+                                          @onclick="() => AddEditCustom(item.data, 2)">
+                                        <i class="fas fa-copy"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-md-1">
+                                <label class="form-label">Hs Code</label>
+                                <input @bind="@item.data.HsCode" class="form-control maxlength" maxlength="50"/>
+                            </div>
+                            <div class="col-md-1">
+                                <label class="form-label">Brand</label>
+                                <input @bind="@item.data.Brand" class="form-control maxlength" maxlength="50"/>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Origin Country</label>
+                                <select class="form-select bg-light-warning" data-control="select2"
+                                        data-id="cus@item.iIndex">
+                                    <option value="">Select Item</option>
+                                    @if (LCountry is { Count: > 0 })
+                                    {
+                                        foreach (var itemC in LCountry)
+                                        {
+                                            <option value="@itemC.CountryCode"
+                                                    selected="@(itemC.CountryCode == item.data.OriginCountryCode)">@itemC.CountryCode</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Material Dest</label>
+                                <input @bind="@item.data.DestMaterial" class="form-control maxlength" maxlength="50"/>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Material Local</label>
+                                <input @bind="@item.data.LocalMaterial" class="form-control maxlength" maxlength="50"/>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Usage Dest</label>
+                                <input @bind="@item.data.DestUsage" class="form-control maxlength" maxlength="50"/>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Usage Local</label>
+                                <input @bind="@item.data.LocalUsage" class="form-control maxlength" maxlength="50"/>
+                            </div>
+                        </div>
+                    </RowTemplate>
+                </DetailTemplate>
+            </div>
+        </div>
+    </div>
+</EditForm>
+<CustomModal Title="Select Store" HideSaveButton="true" ModalClass="3">
+    <table class="table table-row-bordered">
+        <thead>
+        <tr>
+            <th>Action</th>
+            <th>Address</th>
+            <th>City</th>
+            <th>State</th>
+            <th>Post Code</th>
+            <th>Country</th>
+            <th>Phone</th>
+        </tr>
+        </thead>
+        <tbody>
+        @if (LStores is { Count: > 0 })
+        {
+            foreach (var item in LStores)
+            {
+                <tr>
+                    <td>
+                        <button class="btn btn-sm btn-primary" @onclick="async () => { await SetShipper(item);}">
+                            Select
+                        </button>
+                    </td>
+                    <td>@item.AddressLine1 @item.AddressLine2</td>
+                    <td>@item.City</td>
+                    <td>@item.State</td>
+                    <td>@item.Zip</td>
+                    <td>@item.County</td>
+                    <td>@item.Name</td>
+                </tr>
+            }
+        }
+        </tbody>
+    </table>
+</CustomModal>
+
+@code {
+    [Parameter] public CShipmentDto Data { get; set; } = new();
+    [Parameter] public EventCallback<AddEditDataRequest<CShipmentDto>> SaveChange { get; set; }
+    private FluentValidationValidator _fluentValidationValidator = default!;
+    [Parameter] public List<CServiceDto>? LService { get; set; }
+    [Parameter] public List<CCountryDto>? LCountry { get; set; }
+    [Parameter] public List<CStoreAddressDto>? LStores { get; set; }
+    [Parameter] public bool EditData { get; set; } = false;
+    private bool Refresh { get; set; } = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await SetSelectTextNum();
+        }
+
+        if (Refresh)
+        {
+            Refresh = false;
+            await SetSelectTextNum();
+        }
+    }
+
+    [JSInvokable]
+    public void UpdateSelect2(string value, string controlId)
+    {
+        switch (controlId)
+        {
+            case "unit":
+                Data!.UnitType = value.ConvertToInt();
+                Data.UnitChanged();
+                break;
+            case "service":
+                Data.ServiceCode = value;
+                Data.ApiName = LService?.FirstOrDefault(w => w.ServiceCode == value)?.ApiName;
+                break;
+            case "package":
+                Data.PackageType = value;
+                break;
+            case "shipper":
+                Data.Shipper!.CountryCode = value;
+                Data.Shipper.County = LCountry?.Find(w => w.CountryCode == value)?.CountryName;
+                break;
+            case "shipper_tax":
+                Data.Shipper!.TaxNoType = value;
+                break;
+            case "consignee_tax":
+                Data.Consignee!.TaxNoType = value;
+                break;
+            case "consignee":
+                Data.Consignee!.CountryCode = value;
+                Data.Consignee.County = LCountry?.Find(w => w.CountryCode == value)?.CountryName;
+                break;
+            default:
+                var index = controlId[3..].ConvertToInt();
+                var subControl = controlId[..3];
+                if (subControl == "cus")
+                {
+                    Data.Customs![index].OriginCountryCode = value;
+                }
+
+                break;
+        }
+    }
+
+    private async Task Call(ActionCommandType action)
+    {
+        if (LStores is { Count: > 0 })
+        {
+            var oFindStores = LStores?.Where(w => $"{w.ServiceCode}".Contains($"{Data.ServiceCode}")).ToList();
+            if (oFindStores is { Count: > 0 })
+            {
+                if (oFindStores.Count(w => w.Zip == $"{Data.Shipper?.Zip}") == 0)
+                {
+                    await ShowAlert("Shipper address invalid. Please input again", 1);
+                    return;
+                }
+            }
+        }
+
+
+        var isValid = _fluentValidationValidator.Validate(o => o.IncludeAllRuleSets());
+        if (!isValid) return;
+        var data = new AddEditDataRequest<CShipmentDto>()
+        {
+            Data = Data,
+            Action = action
+        };
+        await SaveChange.InvokeAsync(data);
+        if (action == ActionCommandType.Add)
+        {
+            await FocusElement("entrypoint");
+        }
+    }
+
+    private void AddEditBox(CManifestBox item, int iAction)
+    {
+        if (Data.Boxes is null)
+        {
+            Data!.Boxes = [];
+        }
+
+        switch (iAction)
+        {
+            case 1:
+                Data.Boxes.Remove(item);
+                break;
+            case 2:
+                var newItem = new CManifestBox();
+                item.Adapt(newItem);
+                Data.Boxes.Add(newItem);
+                break;
+            default:
+                Data.Boxes.Add(item);
+
+                break;
+        }
+
+        Refresh = true;
+        StateHasChanged();
+    }
+
+    private void AddEditCustom(CCustom item, int iAction)
+    {
+        if (Data.Customs is null)
+        {
+            Data!.Customs = [];
+        }
+
+        switch (iAction)
+        {
+            case 1:
+                Data.Customs.Remove(item);
+                break;
+            case 2:
+                var newItem = new CCustom();
+                item.Adapt(newItem);
+                Data.Customs.Add(newItem);
+                break;
+            default:
+                Data.Customs.Add(item);
+
+                break;
+        }
+
+        Refresh = true;
+        StateHasChanged();
+    }
+
+    private async Task SetShipper(CStoreAddressDto item)
+    {
+        item.Adapt(Data.Shipper);
+        Data.EntryPoint = item.EntryPoint;
+        Refresh = true;
+        StateHasChanged();
+        await ToggleModal();
+    }
+
+    private async Task ShowStore()
+    {
+        await ToggleModal();
+    }
+
+}

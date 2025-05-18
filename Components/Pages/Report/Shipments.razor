@@ -1,0 +1,197 @@
+﻿@page "/portal/report/shipment"
+@using Leus.Application.Features.Catalog.Queries
+@attribute [Authorize]
+@inject IExcelService ExcelService
+<SectionContent SectionName="@NavConstants.TopLeft">
+    <Breadcrumb Slash="true"></Breadcrumb>
+    <Breadcrumb TextMuted="true">Reports</Breadcrumb>
+</SectionContent>
+<SectionContent SectionName="@NavConstants.TopRight">
+    <div class="d-flex flex-row-auto">
+        <input @bind="DateRange" class="form-control form-control-sm w-200px mx-2" placeholder="Pick date range"
+               id="RangeDate"/>
+        <button class="btn btn-sm btn-primary w-100" @onclick="GetData">Get Data</button>
+    </div>
+</SectionContent>
+
+@if (IsLoading)
+{
+    <LoadingRotate/>
+}
+else
+{
+    <Card Title="List of Shipment">
+        <ToolbarRight>
+            <label
+                class="form-check form-switch form-check-custom form-check-success form-check-solid px-2">
+                <input class="form-check-input" type="checkbox" @bind="@_request.Export"
+                       @bind:after="DoExport"/>
+                <span>
+                    Export
+                </span>
+            </label>
+        </ToolbarRight>
+        <ChildContent>
+            @if (_items != null)
+            {
+                <table class="table table-hover table-rounded table-striped border gy-7 gs-7 nowrap w-100"
+                       id="@UiConstants.TableId">
+                    <thead>
+                    <tr class="fw-semibold fs-6 text-gray-800 border-bottom-2 border-gray-200">
+                        <th>Date</th>
+                        <th>No</th>
+                        <th>No 2</th>
+                        <th>No 3</th>
+                        <th>Service Code</th>
+                        <th>Entry Point</th>
+                        <th>Name</th>
+                        <th>Address</th>
+                        <th>Address 2</th>
+                        <th>Post Code</th>
+                        <th>City</th>
+                        <th>Country</th>
+                        <th>Weight</th>
+                        <th>Zone</th>
+                        <th>Tracking Id</th>
+
+                        @if (isAcc)
+                        {
+                            <th>Customer</th>
+                            <th>Amount</th>
+                            <th>Remote</th>
+                            <th>Cost</th>
+                        }
+                        else
+                        {
+                            <th>Amount</th>
+                            <th>Remote</th>
+                        }
+                        
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var item in _items)
+                    {
+                        <tr>
+
+                            <td>@item.CreatedOn.ToDmy()</td>
+                            <th>@item.ReferenceId</th>
+                            <th>@item.ReferenceId2</th>
+                            <th>@item.ReferenceId3</th>
+                            <td>@item.ServiceCode</td>
+                            <td>@item.EntryPoint</td>
+                            <td>@item.Consignee?.Name</td>
+                            <td>@item.Consignee?.AddressLine1</td>
+                            <td>@item.Consignee?.AddressLine2</td>
+                            <td>@item.Consignee?.Zip</td>
+                            <td>@item.Consignee?.City</td>
+                            <td>@item.Consignee?.CountryCode</td>
+                            <td>@item.Weight @item.WeightUnit</td>
+                            <td>@item.ZonePrice</td>
+                            <td>@item.TrackIds</td>
+                            @if (isAcc)
+                            {
+                                <td>@_customers.FirstOrDefault(w => w.Id.ToString() == item.CustomerId)?.Name</td>
+                                <td>@item.Price?.ToString("N2")</td>
+                                <td>@item.Remote?.ToString("N2")</td>
+                                <td>@item.Cost?.ToString("N2")</td>
+                            }
+                            else
+                            {
+                                <td>@item.Price?.ToString("N2")</td>
+                                <td>@item.Remote?.ToString("N2")</td>
+                            }
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            }
+        </ChildContent>
+    </Card>
+}
+
+
+
+@code {
+    private List<CShipmentReport>? _items;
+    private List<CCustomerDto> _customers = [];
+    private bool isAcc = false;
+    [CascadingParameter] private UserInfo? ShareUserInfo { get; set; }
+
+    private GetReportRequest _request = new()
+    {
+    };
+
+    protected override void OnInitialized()
+    {
+        DateRange = "".InitDateRange();
+        base.OnInitialized();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            isAcc = ShareUserInfo!.Role!.Contains(RoleConstants.AccountingRole);
+            if (!isAcc)
+            {
+                _request.UserId = $"{ShareUserInfo?.UserId}";
+            }
+            else
+            {
+                _customers = await Mediator.Send(new GetAllCustomerQuery());
+            }
+            await GetData();
+            await CallInitRangeDate();
+        }
+
+        if (InitDataTable)
+        {
+            InitDataTable = false;
+            if (isAcc)
+            {
+                await CallJs("initFixTable", UiConstants.TableId, 2, 2);
+            }
+            else
+            {
+                await CallJs("initFixTable", UiConstants.TableId, 3, 1);
+            }
+        }
+    }
+
+
+    private async Task GetData()
+    {
+        IsLoading = true;
+        StateHasChanged();
+        _request.DateRange = DateRange;
+        _items = await Mediator.Send(new GetShipmentReportQuery()
+        {
+            DateRange = _request.DateRange,
+            UserId = _request.UserId
+        });
+        _items = _items.OrderByDescending(o => o.CreatedOn).ToList();
+        IsLoading = false;
+        InitDataTable = true;
+        StateHasChanged();
+    }
+    
+    private async Task DoExport()
+    {
+        if (_request.Export)
+        {
+            if (_items is { Count: 0 }) return;
+            _request.Export = false;
+            IsLoading = true;
+            StateHasChanged();
+            var result = ExcelService.DownloadShipment(data: _items!, isAcc, _customers);
+            if (result.content.Length > 0)
+            {
+                await BlazorDownloadFile(result.code, result.fileType, result.content);
+            }
+            IsLoading = false;
+            InitDataTable = true;
+            StateHasChanged();
+        }
+    }
+}

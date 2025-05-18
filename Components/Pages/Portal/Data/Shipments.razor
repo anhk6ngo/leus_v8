@@ -1,0 +1,431 @@
+﻿@page "/portal/shipments"
+@attribute [Authorize]
+@using Leus.Application.Features.Catalog.Queries
+@using Leus.Application.Features.Data.Commands
+@using LeUs.Application.Features.Data.Commands
+@inject ILeUsService LeUsService
+<SectionContent SectionName="@NavConstants.TopLeft">
+    <Breadcrumb Slash="true"></Breadcrumb>
+    <Breadcrumb TextMuted="true">@(ShowEdit ? "Edit Shipment" : "List of Shipment")</Breadcrumb>
+</SectionContent>
+@if (!ShowEdit)
+{
+    <SectionContent SectionName="@NavConstants.TopRight">
+        <div class="d-flex flex-row-auto">
+            <input @bind="DateRange" class="form-control form-control-sm w-200px mx-2" placeholder="Pick date range"
+                   id="RangeDate"/>
+            <button class="btn btn-sm btn-primary w-100" @onclick="GetData">Get Data</button>
+        </div>
+    </SectionContent>
+}
+
+
+@if (IsLoading)
+{
+    <LoadingRotate/>
+}
+@if (ShowEdit)
+{
+    <InputShipment Data="_data" LService="Services" LCountry="Countries" LStores="Stores" SaveChange="OnSaveChange"
+                   EditData="true">
+    </InputShipment>
+}
+else
+{
+    if (!HideTable)
+    {
+        <Card Title="List of Shipment">
+            <ToolbarRight>
+                <div class="d-flex flex-stack">
+                    <div class="form-check me-2">
+                        <input class="form-check-input" type="radio" value="0" checked="@(iState == 0)" id="flexState"
+                               name="rdoState" @onchange="async () => {await FilterData(0);}">
+                        <label class="form-check-label" for="flexState">
+                            Draft
+                        </label>
+                    </div>
+                    <div class="form-check me-2">
+                        <input class="form-check-input" type="radio" checked="@(iState == 1)" value="1" id="flexState1"
+                               name="rdoState" @onchange="async () => {await FilterData(1);}">
+                        <label class="form-check-label" for="flexState1">
+                            Label
+                        </label>
+                    </div>
+                    <div class="form-check me-2">
+                        <input class="form-check-input" type="radio" checked="@(iState == 2)" value="2" id="flexState1"
+                               name="rdoState" @onchange="async () => {await FilterData(2);}">
+                        <label class="form-check-label" for="flexState1">
+                            Cancel
+                        </label>
+                    </div>
+                </div>
+                @if (iState == 0)
+                {
+                    <button class="btn btn-primary btn-sm" @onclick="GenerateLabel">Generate Label</button>
+                }
+                @if (iState == 1)
+                {
+                    <button class="btn btn-success btn-sm" @onclick="GetLabel">Download Label
+                    </button>
+                    <button class="btn btn-danger btn-sm" @onclick="CancelLabel">Cancel Label
+                    </button>
+                }
+            </ToolbarRight>
+            <ChildContent>
+                @if (_items == null || IsLoading)
+                {
+                    <Loading/>
+                }
+                else
+                {
+                    <table class="table table-hover table-rounded table-striped border gy-7 gs-7 nowrap w-100"
+                           id="@UiConstants.TableId">
+                        <thead>
+                        <tr class="fw-semibold fs-6 text-gray-800 border-bottom-2 border-gray-200">
+                            <th>Select All
+                                <label class="form-check form-check-custom form-check-solid form-check-sm ms-2">
+                                    <input type="checkbox" class="form-check-input border border-danger"
+                                           @onchange="SetSelect"/>
+                                </label>
+                            </th>
+                            <th>Date</th>
+                            <th>No</th>
+                            <th>Status</th>
+                            <th>Service Code</th>
+                            <th>Entry Point</th>
+                            <th>Name</th>
+                            <th>Address</th>
+                            <th>Address 2</th>
+                            <th>Post Code</th>
+                            <th>City</th>
+                            <th>Country</th>
+                            <th>Duty Code</th>
+                            <th>Weight</th>
+                            <th>Price</th>
+                            <th>Remote</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var t in _itemsFilter!.WithIndex())
+                        {
+                            <tr>
+                                <td>
+                                    <label class="form-check form-check-custom form-check-solid form-check-sm me-1">
+                                        @if (lstCheckship.Contains($"{t.item.ReferenceId}"))
+                                        {
+                                            <input @key="@($"{t.item.Id}_1")" type="checkbox"
+                                                   checked class="form-check-input border border-danger"
+                                                   @onchange="(arg) => CheckOrder(t.item.ReferenceId, arg)"/>
+                                        }
+                                        else
+                                        {
+                                            <input @key="@($"{t.item.Id}_2")" type="checkbox"
+                                                   class="form-check-input border border-danger"
+                                                   @onchange="(arg) => CheckOrder(t.item.ReferenceId, arg)"/>
+                                        }
+                                    </label>
+                                </td>
+                                <td>@t.item.CreatedOn.ToDmy()</td>
+                                <th>@t.item.ReferenceId</th>
+                                <th>@GetStatus(t.item.ShipmentStatus)</th>
+                                <td>@t.item.ServiceCode</td>
+                                <td>@t.item.EntryPoint</td>
+                                <td>@t.item.Consignee?.Name</td>
+                                <td>@t.item.Consignee?.AddressLine1</td>
+                                <td>@t.item.Consignee?.AddressLine2</td>
+                                <td>@t.item.Consignee?.Zip</td>
+                                <td>@t.item.Consignee?.City</td>
+                                <td>@t.item.Consignee?.CountryCode</td>
+                                <td>@t.item.DutyType</td>
+                                <td>@t.item.Weight @GetUnitType(t.item.UnitType)</td>
+                                <td>@t.item.Price?.ToString("N2")</td>
+                                <td>@t.item.Remote?.ToString("N2")</td>
+                                <td>
+                                    @if (t.item.ShipmentStatus == 0)
+                                    {
+                                        <button class="btn btn-sm btn-icon btn-primary me-2"
+                                                @onclick="@(() => FormAction(t.index, 1))">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-icon btn-danger"
+                                                @onclick="@(() => FormAction(t.index, 2))">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+            </ChildContent>
+        </Card>
+    }
+}
+
+<CustomModal Title="The Results" HideSaveButton="true" ModalClass="2">
+    @if (_labelResults is { Count: > 0 })
+    {
+        <table class="table table-striped">
+            <thead>
+            <tr class="fw-semibold fs-6 text-gray-800 border-bottom-2 border-gray-200">
+                <th>Shipment Id</th>
+                <th class="w-50px">Status</th>
+                <th>Messages</th>
+            </tr>
+            </thead>
+            <tbody class="scroll mh-550px">
+            @foreach (var item in _labelResults)
+            {
+                <tr>
+                    <td class="fw-semibold">@item.RequestId</td>
+                    <td>
+                        <span
+                            class="badge py-3 px-4 fs-7 @(item.Success == true ? "badge-light-success" : "badge-light-danger")">@item.Success</span>
+                    </td>
+                    <td>@item.ErrorMessage</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+</CustomModal>
+
+@code {
+    private List<CShipmentDto>? _items;
+    private List<CShipmentDto>? _itemsFilter;
+    private List<CResult<string>> _labelResults = [];
+    private List<string> lstCheckship = [];
+    private List<CServiceDto> Services { get; set; } = [];
+    private List<CCountryDto> Countries { get; set; } = [];
+    private List<CStoreAddressDto> Stores { get; set; } = [];
+    private CShipmentDto? _data = new();
+    private int iAction { get; set; } = 0;
+    private string Title { get; set; } = "Add new";
+    private bool ShowEdit { get; set; } = false;
+    private int iState = 0;
+    [CascadingParameter] private UserInfo? ShareUserInfo { get; set; }
+
+    private GetReportRequest _request = new()
+    {
+    };
+
+    protected override void OnInitialized()
+    {
+        DateRange = "".InitDateRange();
+        base.OnInitialized();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _request.UserId = $"{ShareUserInfo?.UserId}";
+            Services = await Mediator.Send(new GetAllServiceQuery());
+            Countries = await Mediator.Send(new GetAllCountryQuery());
+            Stores = await Mediator.Send(new GetAllStoreAddressQuery());
+            await GetData();
+            await CallInitRangeDate();
+        }
+
+        if (InitDataTable)
+        {
+            InitDataTable = false;
+            await CallInitMenu();
+            await CallJs("initFixTable", UiConstants.TableId, 3, 1);
+        }
+
+        if (ShowEdit)
+        {
+            await SetSelectTextNum();
+            await CallJs("fixedToolbar", true);
+        }
+    }
+
+
+    private async Task FormAction(int index, int action)
+    {
+        if (action == 2)
+        {
+            var iConfirm = await Confirm("Do you want to delete this shipment?");
+            if (!iConfirm) return;
+            var id = _items![index].Id;
+            ShowHideLoading();
+            var result = await Mediator.Send(new DeleteShipmentCommand()
+            {
+                Id = id
+            });
+            if (result.Succeeded)
+            {
+                _items = _items?.Where(w => w.Id != id).ToList();
+                _itemsFilter = _itemsFilter?.Where(w => w.Id != id).ToList();
+            }
+
+            ShowHideLoading(isShow: false, initTable: true);
+            return;
+        }
+
+        _data = new CShipmentDto();
+        _items![index].Adapt(_data);
+        ShowEdit = true;
+        StateHasChanged();
+    }
+
+    private async Task GetData()
+    {
+        ShowHideLoading();
+        _request.DateRange = DateRange;
+        _items = await Mediator.Send(new GetAllShipmentByUserQuery()
+        {
+            Status = _request.Status,
+            DateRange = _request.DateRange,
+            UserId = _request.UserId
+        });
+        _items = _items.OrderByDescending(o => o.CreatedOn).ToList();
+        FilterBy();
+    }
+
+    private void FilterBy()
+    {
+        _itemsFilter = iState == 0 ? _items?.Where(w => w.ShipmentStatus < 2).ToList() : _items?.Where(w => w.ShipmentStatus == (iState + 1)).ToList();
+        ShowHideLoading(isShow: false, initTable: true);
+    }
+
+    private void CheckOrder(string? shipmentId, ChangeEventArgs obj)
+    {
+        var blnCheck = Convert.ToBoolean(obj.Value);
+        if (blnCheck)
+        {
+            if (!lstCheckship.Contains($"{shipmentId}"))
+                lstCheckship.Add($"{shipmentId}");
+        }
+        else
+        {
+            lstCheckship.Remove($"{shipmentId}");
+        }
+    }
+
+    private void SetSelect(ChangeEventArgs obj)
+    {
+        var blnCheck = Convert.ToBoolean(obj.Value);
+        if (_items is { Count: 0 })
+        {
+            lstCheckship = [];
+            return;
+        }
+
+        lstCheckship = blnCheck ? _items!.Select(s => $"{s.ReferenceId}").ToList() : [];
+    }
+
+    private string GetStatus(int status)
+    {
+        return status switch
+        {
+            1 => "Deleted",
+            2 => "Created Label",
+            3 => "Cancel Label",
+            _ => "Draft"
+        };
+    }
+
+    private async Task GenerateLabel()
+    {
+        var oInput = _items?.Where(w => w is { ShipmentStatus: 0, Price: > 0 } && lstCheckship.Contains($"{w.ReferenceId}")).ToList();
+        if (oInput is { Count: 0 }) return;
+        ShowHideLoading();
+        _labelResults = await LeUsService.CreateShipment(oInput!, ShareUserInfo?.UserId);
+        var lId = _labelResults.Where(w => w.Success == true).Select(s => s.RequestId).ToList();
+        var oUps = _items?.Where(w => lId.Contains(w.ReferenceId)).ToList();
+        if (oUps is { Count: > 0 })
+        {
+            foreach (var cUp in oUps)
+            {
+                cUp.ShipmentStatus = 2;
+            }
+        }
+
+        ShowHideLoading(isShow: false, initTable: true);
+        await ToggleModal();
+    }
+
+    private async Task GetLabel()
+    {
+        ShowHideLoading();
+        var result = await LeUsService.GetLabel(lstCheckship, ShareUserInfo?.UserId);
+        ShowHideLoading(isShow: false, initTable: true);
+        if (result.content.Length > 0)
+        {
+            await BlazorDownloadFile(result.code, result.fileType, result.content);
+        }
+    }
+
+    private async Task CancelLabel()
+    {
+        var iConfirm = await Confirm("Do you want to cancel these label?");
+        if (iConfirm == false) return;
+        ShowHideLoading();
+        _labelResults = await LeUsService.CancelShipment(lstCheckship, ShareUserInfo?.UserId);
+        ShowHideLoading(isShow: false, initTable: true);
+        await ToggleModal();
+    }
+
+    private async Task OnSaveChange(AddEditDataRequest<CShipmentDto> arg)
+    {
+        ShowHideLoading();
+        if (arg.Action == ActionCommandType.Edit)
+        {
+            arg.Data!.Weight = arg.Data.Boxes!.Sum(s => s.Weight);
+            arg.Data.ServiceId = $"{Services.FirstOrDefault(w => w.ServiceCode == arg.Data.ServiceCode)?.Id}";
+            var result = await Mediator.Send(new AddEditShipmentCommand()
+            {
+                Request = arg
+            });
+            if (result.Succeeded)
+            {
+                var oFind = _items?.FirstOrDefault(w => w.Id == arg.Data.Id);
+                if (oFind != null)
+                {
+                    arg.Data.Price = result.Data.Price;
+                    arg.Data.PriceCode = result.Data.PriceCode;
+                    arg.Data.ChargeWeight = result.Data.ChargeWeight;
+                    arg.Data.Remote = result.Data.Remote;
+                    arg.Data.Adapt(oFind);
+                }
+            }
+        }
+
+        await CallJs("fixedToolbar", false);
+        await CallInitRangeDate();
+        ShowEdit = false;
+        ShowHideLoading(isShow: false, initTable: true);
+    }
+
+    private string GetUnitType(int unitType)
+    {
+        return unitType switch
+        {
+            1 => "oz",
+            2 => "kg",
+            _ => "lb"
+        };
+    }
+
+    private void ShowHideLoading(bool isShow = true, bool initTable = false)
+    {
+        IsLoading = isShow;
+        HideTable = isShow;
+        InitDataTable = initTable;
+        StateHasChanged();
+    }
+
+    private async Task FilterData(int state)
+    {
+        lstCheckship = [];
+        ShowHideLoading();
+        await Task.Delay(500);
+        iState = state;
+        FilterBy();
+    }
+
+}

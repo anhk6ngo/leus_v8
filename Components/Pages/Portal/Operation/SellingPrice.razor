@@ -1,0 +1,535 @@
+﻿@page "/portal/selling-price"
+@using Leus.Application.Features.Catalog.Commands
+@using Leus.Application.Features.Catalog.Queries
+@using Leus.Application.Features.Data.Commands
+@using LeUs.Application.Features.Data.Commands
+@using Mysqlx.Crud
+@inject IExcelService ExcelService
+@attribute [Authorize(Roles = $"{RoleConstants.InputCatalog},{RoleConstants.AdministratorRole}")]
+<PageTitle>Selling Prices</PageTitle>
+<SectionContent SectionName="@NavConstants.TopLeft">
+    <Breadcrumb Slash="true"></Breadcrumb>
+    <Breadcrumb TextMuted="true">Selling Prices</Breadcrumb>
+</SectionContent>
+<SectionContent SectionName="@NavConstants.TopRight">
+    <button class="btn btm-sm btn-custom align-self-center" @onclick="() => FormAction(-1, 0)">
+        <i class="fa fa-plus-square"></i>Add new
+    </button>
+</SectionContent>
+@if (IsLoading)
+{
+    <LoadingRotate/>
+}
+<Card OnlyCardBody="true">
+    <div class="row">
+        <div class="col-md-6">
+            <Upload IsLoading="IsLoading" BtnClass="btn-custom" IsLoadingFile="IsLoadingFile"
+                    OnChangeUpload="OnChangeLoadFile" OnUploadFileCallback="UploadFile"
+                    ShowDownload="false"/>
+        </div>
+        <div class="col-md-4">
+            <div class="row mb-7">
+                <label class="fs-6 fw-semibold form-label">Service</label>
+                <select class="form-select bg-light-warning" data-control="select2" data-id="ser">
+                    <option value="">Select Item</option>
+                    @foreach (var indexEntity in _services!)
+                    {
+                        <option value="@indexEntity.Id"
+                                selected="@(ServiceId == $"{indexEntity.Id}")">@indexEntity.ServiceCode @indexEntity.ServiceName</option>
+                    }
+                </select>
+            </div>
+            <div class="row mb-7">
+                <label class="fs-6 fw-semibold form-label">Customer</label>
+                <select class="form-select bg-light-warning" data-control="select2" data-id="cus">
+                    <option value="">Select Item</option>
+                    @foreach (var indexEntity in _customers!)
+                    {
+                        <option value="@indexEntity.Id"
+                                selected="@(CustomerId == $"{indexEntity.Id}")">@indexEntity.Code @indexEntity.Name</option>
+                    }
+                </select>
+            </div>
+
+        </div>
+        <div class="col-md-2">
+            <div class="d-flex flex-stack mb-6">
+                <div class="form-check form-check-custom form-check-solid">
+                    <input class="form-check-input" type="radio" checked="@(ActionForm == 0)" @onchange="@(() =>
+                                                                                                         {
+                                                                                                             ActionForm = 0;
+                                                                                                             ChangeData();
+                                                                                                         })"
+                           id="gAction"/>
+                    <label class="form-check-label" for="gAction">
+                        Active
+                    </label>
+                </div>
+                <div class="form-check form-check-custom form-check-solid">
+                    <input class="form-check-input" type="radio" checked="@(ActionForm == 1)" @onchange="@(() =>
+                                                                                                         {
+                                                                                                             ActionForm = 1;
+                                                                                                             ChangeData();
+                                                                                                         })"
+                           id="gAction1"/>
+                    <label class="form-check-label" for="gAction1">
+                        De-Active
+                    </label>
+                </div>
+            </div>
+            @if (ActionForm == 0)
+            {
+                <div class="d-flex flex-stack mb-6">
+                    <div class="form-check form-check-custom form-check-success form-check-solid">
+                        <input class="form-check-input" type="radio" checked="@(ActiveStatus == 0)"
+                               @onchange="@(() =>
+                                          {
+                                              ActiveStatus = 0;
+                                              ChangeData();
+                                          })"
+                               id="gPStatus"/>
+                        <label class="form-check-label" for="gPStatus">
+                            Effective
+                        </label>
+                    </div>
+                    <div class="form-check form-check-custom form-check-success form-check-solid">
+                        <input class="form-check-input" type="radio" checked="@(ActiveStatus == 1)"
+                               @onchange="@(() =>
+                                          {
+                                              ActiveStatus = 1;
+                                              ChangeData();
+                                          })"
+                               id="gPStatus1"/>
+                        <label class="form-check-label" for="gPStatus1">
+                            Expire
+                        </label>
+                    </div>
+                </div>
+            }
+            <button class="btn btn-primary w-100" @onclick="LoadData">Reload</button>
+        </div>
+    </div>
+</Card>
+<div class="mb-6"></div>
+<Card Title="List of Selling Price">
+    @if (_items == null || IsLoading)
+    {
+        <Loading/>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover table-rounded table-striped border gy-7 gs-7" id="@UiConstants.TableId">
+                <thead>
+                <tr class="fw-semibold fs-6 text-gray-800 border-bottom-2 border-gray-200">
+                    <th>Code</th>
+                    <th>Name</th>
+                    <th>Date</th>
+                    <th>Service</th>
+                    <th>Is Private</th>
+                    <th>Is Percent</th>
+                    <th>Action</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var t in _items.WithIndex())
+                {
+                    var oFind = _services?.FirstOrDefault(w => $"{w.Id}" == t.item.ServiceId);
+                    <tr>
+                        <th>@t.item.PriceCode</th>
+                        <td>@t.item.PriceName</td>
+                        <td>@t.item.FromDate.ToDmy()</td>
+                        <td>@oFind?.ServiceName @oFind?.ApiName</td>
+                        <td>@t.item.IsPrivate</td>
+                        <td>@t.item.IsPercent</td>
+                        <td>
+                            <button class="btn btn-sm btn-info" @onclick="() => DownloadFile(t.item)">
+                                Down
+                            </button>
+                            <button @key="Guid.NewGuid()" class="btn btn-sm btn-success"
+                                    @onclick="@(() => FormAction(t.index, 1))">
+                                Edit
+                            </button>
+                            <button @key="Guid.NewGuid()" class="btn btn-sm btn-danger"
+                                    @onclick="@(() => FormAction(t.index, 2))">
+                                Delete
+                            </button>
+                            <button @key="Guid.NewGuid()" class="btn btn-sm btn-warning"
+                                    @onclick="@(() => FormAction(t.index, 3))">
+                                Copy
+                            </button>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</Card>
+<CustomModal Title="@($"{Title} Selling Price")" OnClickCallback="SaveData" ModalClass="3">
+    <EditForm Model="data" class="form">
+        <FluentValidationValidator @ref="_fluentValidationValidator"/>
+        <div class="row mb-7">
+            <div class="col-md-2">
+                <label class="required form-label">Code</label>
+                <InputText type="text" @bind-Value="@data!.PriceCode" class="form-control maxlength" maxlength="50"/>
+                <ValidationMessage For="@(() => data.PriceCode)"/>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Name</label>
+                <InputText type="text" @bind-Value="@data!.PriceName" class="form-control maxlength" maxlength="255"/>
+                <ValidationMessage For="@(() => data.PriceName)"/>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">From</label>
+                <InputDate @bind-Value="@data!.FromDate" class="form-control" data-control="date-picker"/>
+                <ValidationMessage For="@(() => data.FromDate)"/>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">To</label>
+                <InputDate @bind-Value="@data!.ToDate" class="form-control" data-control="date-picker"/>
+                <ValidationMessage For="@(() => data.ToDate)"/>
+            </div>
+        </div>
+        <div class="row mb-7">
+            <div class="col-md-2">
+                <label class="form-label">Max Cubic</label>
+                <input type="text" @bind="@data!.MaxCubic" class="form-control numberinputmask"/>
+                <ValidationMessage For="@(() => data.MaxCubic)"/>
+            </div>
+            <div class="col-md-2">
+                <div class="form-check form-switch form-check-custom form-check-warning form-check-solid me-6 mt-9">
+                    <input class="form-check-input" type="checkbox"
+                           @bind="@data.IsPercent" id="percent"/>
+                    <label class="form-check-label" for="percent">
+                        Is Percent
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="form-check form-switch form-check-custom form-check-warning form-check-solid me-6 mt-9">
+                    <input class="form-check-input" type="checkbox"
+                           @bind="@data.IsPrivate" id="private"/>
+                    <label class="form-check-label" for="private">
+                        Is Private
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label required">Service</label>
+                <select class="form-select bg-light-warning" data-control="select2" data-id="service"
+                        data-dropdown-parent="#@UiConstants.GetModalNameDefault">
+                    <option value="">Select Item</option>
+                    @if (_services is { Count: > 0 })
+                    {
+                        foreach (var item in _services)
+                        {
+                            <option value="@item.Id"
+                                    selected="@($"{item.Id}" == data.ServiceId)">@item.ServiceCode @item.ServiceName @item.ApiName</option>
+                        }
+                    }
+                </select>
+                <ValidationMessage For="@(() => data.ServiceId)"/>
+            </div>
+            <div class="col-md-2">
+                <InputUnitType SelectItem="@data.UnitType" ParentId="@UiConstants.GetModalNameDefault"/>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-10">
+                <label class="form-label">Customer</label>
+                <select class="form-select" id="customer" multiple>
+                    @foreach (var item in _customers!)
+                    {
+                        <option value="@item.Id">@item.Code @item.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Ratio</label>
+                <input type="text" @bind="@data!.Ratio" class="form-control numberinputmask"/>
+                <ValidationMessage For="@(() => data.Ratio)"/>
+            </div>
+        </div>
+    </EditForm>
+</CustomModal>
+
+@code {
+    private int ActionForm = 0;
+    private int ActiveStatus = 0;
+    private List<CPriceDto>? _items;
+    private List<CCustomerDto>? _customers = [];
+    private List<CServiceDto>? _services = [];
+    private List<CPriceDto>? _saveItems;
+    private CPriceDto? data = new();
+    private string? ServiceId = "";
+    private string? CustomerId = "";
+    private int iAction { get; set; } = 0;
+    private string Title { get; set; } = "Add new";
+    private FluentValidationValidator _fluentValidationValidator = default!;
+    private readonly IList<SelectListDto> _emptyList = new List<SelectListDto>();
+    private List<IBrowserFile> _loadedFiles = new();
+
+    private UploadCommandRequest _uploadRequest = new()
+    {
+        TypeUpload = 2,
+        Files = new List<UploadRequest>(),
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadData();
+            _services = await Mediator.Send(new GetAllServiceQuery());
+            _customers = await Mediator.Send(new GetAllCustomerQuery());
+            InitDataTable = true;
+            StateHasChanged();
+            await InitSelect2();
+        }
+
+        if (InitDataTable)
+        {
+            InitDataTable = false;
+            await CallInitialDataTable();
+        }
+    }
+
+    [JSInvokable]
+    public void UpdateSelect2(string value, string controlId)
+    {
+        switch (controlId)
+        {
+            case "unit":
+                data!.UnitType = value.ConvertToInt();
+                return;
+            case "service":
+                data!.ServiceId = value;
+                return;
+            case "cus":
+                CustomerId = value;
+                break;
+            default:
+                ServiceId = value;
+                break;
+        }
+
+        ChangeData();
+    }
+
+    private async Task FormAction(int index, int action)
+    {
+        data = new CPriceDto();
+        if (index >= 0)
+        {
+            _items![index].Adapt(data);
+        }
+
+        iAction = action;
+        Title = action switch
+        {
+            1 => "Edit",
+            2 => "Delete",
+            _ => "Add new"
+        };
+        if (action == 3)
+        {
+            data.Id = Guid.Empty;
+            if (data.Details is { Count: > 0 })
+            {
+                data.Details = data.Details.Select(s => new CPriceDetail()
+                {
+                    Min = s.Min,
+                    Max = s.Max,
+                    PriceType = s.PriceType,
+                    ServiceCode = s.ServiceCode,
+                    GoodType = s.GoodType,
+                    Price = s.Price,
+                    ChargeWeightType = s.ChargeWeightType
+                }).ToList();
+            }
+        }
+
+        await ToggleModal();
+        await SetSelectTextNum();
+        await CallDatePicker();
+        await CallJsWithCallBack("setSelect2aIndex", "#customer", _emptyList, 0);
+        var tmpValue = new List<SelectListDto>();
+        if (data.CustomerId.NotIsNullOrEmpty())
+        {
+            tmpValue.Add(new SelectListDto()
+            {
+                id = "customer",
+                text = $"{data.CustomerId}"
+            });
+        }
+
+        await CallJs("setSelect2Values", tmpValue);
+    }
+
+    [JSInvokable]
+    public void Select2ACallbackIndex(string value, string nameControl, int index)
+    {
+        switch (index)
+        {
+            case 0:
+                data!.CustomerId = value;
+                break;
+        }
+    }
+
+    private async Task SaveData()
+    {
+        var isValid = _fluentValidationValidator.Validate(o => o.IncludeAllRuleSets());
+        if (!isValid) return;
+        IsLoading = true;
+        StateHasChanged();
+        var result = new Result<Guid>();
+        switch (iAction)
+        {
+            case 2:
+                if (data != null)
+                {
+                    result = await Mediator.Send(new DeleteSellingPriceCommand { Id = data.Id });
+                    if (result.Succeeded)
+                    {
+                        _items = _items?.Where(w => w.Id != data.Id).ToList();
+                    }
+                }
+
+                break;
+            default:
+                data!.IsPrivate = $"{data.CustomerId}".NotIsNullOrEmpty();
+                result = await Mediator.Send(new AddEditSellingPriceCommand()
+                {
+                    Request = new AddEditDataRequest<CPriceDto>()
+                    {
+                        Data = data!,
+                        Action = iAction == 1 ? ActionCommandType.Edit : ActionCommandType.Add,
+                    }
+                });
+                if (result.Succeeded)
+                {
+                    if (iAction != 1)
+                    {
+                        data!.Id = result.Data;
+                        _items?.Add(data);
+                    }
+                    else
+                    {
+                        var oFind = _items!.FirstOrDefault(w => w.Id == data!.Id);
+                        if (oFind != null)
+                        {
+                            data.Adapt(oFind);
+                        }
+                    }
+                }
+
+                break;
+        }
+
+        await ShowAlert(result.Messages[0], result.Succeeded ? 0 : 1);
+        IsLoading = false;
+        InitDataTable = true;
+        StateHasChanged();
+        await ToggleModal();
+    }
+
+    private async Task DownloadFile(CPriceDto item)
+    {
+        var oResult = await ExcelService.DownloadPrice(item);
+        var filename = $"{item.PriceCode}.xlsx";
+        await CallJs("BlazorDownloadFile", filename, MimeTypes.TextXlsx, oResult.content);
+    }
+
+    private void OnChangeLoadFile(InputFileChangeEventArgs e)
+    {
+        IsLoadingFile = true;
+        _loadedFiles.Clear();
+        foreach (var file in e.GetMultipleFiles(20))
+        {
+            try
+            {
+                _loadedFiles.Add(file);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        IsLoadingFile = false;
+    }
+
+    public async Task UploadFile(MouseEventArgs eventArgs)
+    {
+        var isConfirm = await Confirm("Do you want to upload excel file");
+        if (!isConfirm) return;
+        IsLoading = true;
+        StateHasChanged();
+        long maxFileSize = 1024 * 1024 * 20;
+        var upload = false;
+
+        foreach (var iFile in _loadedFiles)
+        {
+            try
+            {
+                var memoryStream = new MemoryStream();
+                await iFile.OpenReadStream(maxFileSize).CopyToAsync(memoryStream);
+                _uploadRequest.Files!.Add(new UploadRequest()
+                {
+                    Data = memoryStream.ToArray(),
+                    FileName = iFile.Name
+                });
+                upload = true;
+            }
+            catch (Exception ex)
+            {
+                await ShowAlert(ex.Message, 1);
+                return;
+            }
+        }
+
+        if (upload)
+        {
+            var results = await ExcelService.UpLoad(_uploadRequest);
+            foreach (var uploadResult in results)
+            {
+                await ShowAlert($"{uploadResult.FileName}", uploadResult.Uploaded ? 0 : 1);
+            }
+        }
+
+        _uploadRequest.Files = new List<UploadRequest>();
+        IsLoading = false;
+    }
+
+    private async Task LoadData()
+    {
+        _saveItems = await Mediator.Send(new GetAllSellingPriceQuery());
+        _items = _saveItems.Where(w => w.IsActive).ToList();
+    }
+
+    private void ChangeData()
+    {
+        IsLoading = true;
+        StateHasChanged();
+        _items = _saveItems?.Where(w => ActionForm == 0).ToList();
+        if (ActionForm == 0)
+        {
+            _items = ActiveStatus == 1 ? _items?.Where(w => w.ToDate < DateTime.Now).ToList() : _items?.Where(w => w.ToDate >= DateTime.Now || w.ToDate is null).ToList();
+            if (ServiceId.NotIsNullOrEmpty())
+            {
+                _items = _items?.Where(w => w.ServiceId == $"{ServiceId}").ToList();
+            }
+
+            if (CustomerId.NotIsNullOrEmpty())
+            {
+                _items = _items?.Where(w => $"{w.CustomerId}".Contains($"{CustomerId}")).ToList();
+            }
+        }
+
+        IsLoading = false;
+        StateHasChanged();
+    }
+
+}

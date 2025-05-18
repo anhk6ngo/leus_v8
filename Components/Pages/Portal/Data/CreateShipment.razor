@@ -1,0 +1,104 @@
+﻿@page "/portal/create-shipment"
+@attribute [Authorize]
+@using Leus.Application.Features.Catalog.Queries
+@using Leus.Application.Features.Data.Commands
+@implements IDisposable
+@inject NavigationManager Navigator
+@if (IsLoading)
+{
+    <LoadingRotate/>
+}
+<InputShipment Data="Data" LService="Services" LCountry="Countries" LStores="Stores" SaveChange="OnSaveChange">
+</InputShipment>
+
+@code {
+
+    private CShipmentDto Data { get; set; } = new()
+    {
+        Boxes = [new CManifestBox()],
+        Consignee = new CAddress(),
+        Shipper = new CAddress()
+        {
+            Zip = "90040"
+        },
+        Customs = [new CCustom()]
+    };
+
+    private List<CServiceDto> Services { get; set; } = [];
+    private List<CCountryDto> Countries { get; set; } = [];
+    private List<CStoreAddressDto> Stores { get; set; } = [];
+    [CascadingParameter] private UserInfo? ShareUserInfo { get; set; }
+    private string? CustomerId { get; set; }
+    private bool Refresh = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Services = await Mediator.Send(new GetAllServiceQuery());
+            Countries = await Mediator.Send(new GetAllCountryQuery());
+            Stores = await Mediator.Send(new GetAllStoreAddressQuery());
+            CustomerId = await Mediator.Send(new GetAllCustomerByEmailQuery()
+            {
+                Email = $"{ShareUserInfo?.Email}"
+            });
+            StateHasChanged();
+            await CallJs("fixedToolbar", true);
+        }
+
+        if (Refresh)
+        {
+            Refresh = false;
+            await SetSelectTextNum();
+        }
+    }
+
+    public new void Dispose()
+    {
+        CallJsNoWait("fixedToolbar", false);
+    }
+
+    private async Task OnSaveChange(AddEditDataRequest<CShipmentDto> arg)
+    {
+        IsLoading = true;
+        StateHasChanged();
+        arg.Data!.Weight = arg.Data.Boxes!.Sum(s => s.Weight);
+        arg.Data.CustomerId = CustomerId;
+        arg.Data.ServiceId = $"{Services.FirstOrDefault(w => w.ServiceCode == arg.Data.ServiceCode)?.Id}";
+        var result = await Mediator.Send(new AddEditShipmentCommand()
+        {
+            Request = arg
+        });
+        switch (arg.Action)
+        {
+            case ActionCommandType.Confirm:
+                Navigator.NavigateTo("/portal/shipments", replace: true);
+                return;
+            case ActionCommandType.Add:
+                Data = new CShipmentDto()
+                {
+                    Boxes = [new CManifestBox()],
+                    Consignee = new CAddress(),
+                    Shipper = new CAddress()
+                    {
+                        Zip = "90040"
+                    },
+                    Customs = [new CCustom()]
+                };
+                Refresh = true;
+                break;
+        }
+
+        if (result.Succeeded)
+        {
+           await ShowAlert("The shipment is added", 0);
+        }
+        else
+        {
+            await ShowAlert(result.Messages.Aggregate((a, b) => $"{a}, {b}"), 1);
+        }
+        IsLoading = false;
+        StateHasChanged();
+    }
+
+}

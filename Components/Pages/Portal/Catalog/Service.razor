@@ -1,0 +1,242 @@
+﻿@page "/portal/service"
+@using Leus.Application.Features.Catalog.Commands
+@using Leus.Application.Features.Catalog.Queries
+@attribute [Authorize(Roles = $"{RoleConstants.InputCatalog},{RoleConstants.AdministratorRole}")]
+<PageTitle>Service</PageTitle>
+<SectionContent SectionName="@NavConstants.TopLeft">
+    <Breadcrumb Slash="true"></Breadcrumb>
+    <Breadcrumb TextMuted="true">Service</Breadcrumb>
+</SectionContent>
+<SectionContent SectionName="@NavConstants.TopRight">
+    <button class="btn btm-sm btn-custom align-self-center" @onclick="() => FormAction(-1, 0)">
+        <i class="fa fa-plus-square"></i>Add new
+    </button>
+</SectionContent>
+@if (IsLoading)
+{
+    <LoadingRotate/>
+}
+<Card Title="List of Service">
+    @if (_items == null || IsLoading)
+    {
+        <Loading/>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover table-rounded table-striped border gy-7 gs-7" id="@UiConstants.TableId">
+                <thead>
+                <tr class="fw-semibold fs-6 text-gray-800 border-bottom-2 border-gray-200">
+                    <th>Code</th>
+                    <th>Name</th>
+                    <th>Has Api</th>
+                    <th>Is Hide</th>
+                    <th>Is Cubit</th>
+                    <th>Api Name</th>
+                    <th>Action</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var t in _items.WithIndex())
+                {
+                    <tr>
+                        <th>@t.item.ServiceCode</th>
+                        <td>@t.item.ServiceName</td>
+                        <td>@t.item.HasApi</td>
+                        <td>@t.item.IsHide</td>
+                        <td>@t.item.UseCubic</td>
+                        <td>@t.item.ApiName</td>
+                        <td>
+                            <button @key="Guid.NewGuid()" class="btn btn-sm btn-success"
+                                    @onclick="@(() => FormAction(t.index, 1))">
+                                Edit
+                            </button>
+                            <button @key="Guid.NewGuid()" class="btn btn-sm btn-danger"
+                                    @onclick="@(() => FormAction(t.index, 2))">
+                                Delete
+                            </button>
+                            <button @key="Guid.NewGuid()" class="btn btn-sm btn-warning"
+                                    @onclick="@(() => FormAction(t.index, 3))">
+                                Copy
+                            </button>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</Card>
+<CustomModal Title="@($"{Title} Service")" OnClickCallback="SaveData">
+    <EditForm Model="data" class="form">
+        <FluentValidationValidator @ref="_fluentValidationValidator"/>
+        <div class="row mb-7">
+            <label class="required">Code</label>
+            <InputText type="text" @bind-Value="@data!.ServiceCode" class="form-control maxlength" maxlength="36"/>
+            <ValidationMessage For="@(() => data.ServiceCode)"/>
+        </div>
+        <div class="row mb-7">
+            <label class="required">Name</label>
+            <InputText type="text" @bind-Value="@data.ServiceName" class="form-control maxlength" maxlength="255"/>
+            <ValidationMessage For="@(() => data.ServiceName)"/>
+        </div>
+        <div class="row mb-7">
+            <div class="d-flex flex-stack justify-content-start mx-2">
+                <div class="form-check form-check-custom form-check-solid px-2">
+                    <input class="form-check-input" type="radio" checked="@(data.ServiceType == 0)"
+                           @onchange="@(() => { data.ServiceType = 0; })" id="gSer"/>
+                    <label class="form-check-label" for="gSer">
+                        E-pack
+                    </label>
+                </div>
+                <div class="form-check form-check-custom form-check-solid px-2">
+                    <input class="form-check-input" type="radio" checked="@(data.ServiceType == 1)"
+                           @onchange="@(() => { data.ServiceType = 1; })" id="gSer1"/>
+                    <label class="form-check-label" for="gSer1">
+                        BT
+                    </label>
+                </div>
+                <div class="form-check form-check-custom form-check-solid px-2">
+                    <input class="form-check-input" type="radio" checked="@(data.ServiceType == 2)"
+                           @onchange="@(() => { data.ServiceType = 2; })" id="gSer2"/>
+                    <label class="form-check-label" for="gSer2">
+                        CPN
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="row mb-7">
+            <div class="d-flex flex-stack">
+                <label
+                    class="form-check form-switch form-check-custom form-check-success form-check-solid">
+                    <input class="form-check-input me-2" type="checkbox" @bind="@data.HasApi"/>
+                    <span>Has Api</span>
+                </label>
+                <label
+                    class="form-check form-switch form-check-custom form-check-success form-check-solid">
+                    <input class="form-check-input me-2" type="checkbox" @bind="@data.UseLocation"/>
+                    <span>Use Location</span>
+                </label>
+                <label
+                    class="form-check form-switch form-check-custom form-check-success form-check-solid">
+                    <input class="form-check-input me-2" type="checkbox" @bind="@data.IsHide"/>
+                    <span>Hide</span>
+                </label>
+                <label
+                    class="form-check form-switch form-check-custom form-check-success form-check-solid">
+                    <input class="form-check-input me-2" type="checkbox" @bind="@data.UseCubic"/>
+                    <span>Use Cubic</span>
+                </label>
+            </div>
+        </div>
+        <div class="row mb-7">
+            <label class="required">Api Name</label>
+            <InputText type="text" @bind-Value="@data.ApiName" class="form-control maxlength" maxlength="255"/>
+            <ValidationMessage For="@(() => data.ApiName)"/>
+        </div>
+    </EditForm>
+</CustomModal>
+
+@code {
+    private List<CServiceDto>? _items;
+    private CServiceDto? data = new();
+    private int iAction { get; set; } = 0;
+    private string Title { get; set; } = "Add new";
+    private FluentValidationValidator _fluentValidationValidator = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _items = await Mediator.Send(new GetAllServiceQuery());
+        InitDataTable = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (InitDataTable)
+        {
+            InitDataTable = false;
+            await CallInitialDataTable();
+        }
+    }
+
+    private async Task FormAction(int index, int action)
+    {
+        data = new CServiceDto();
+        if (index >= 0)
+        {
+            _items![index].Adapt(data);
+        }
+
+        iAction = action;
+        Title = action switch
+        {
+            1 => "Edit",
+            2 => "Delete",
+            _ => "Add new"
+        };
+        if (action == 3)
+        {
+            data.Id = Guid.Empty;
+        }
+
+        await ToggleModal();
+        await SetTextNum();
+    }
+
+    private async Task SaveData()
+    {
+        var isValid = _fluentValidationValidator.Validate(o => o.IncludeAllRuleSets());
+        if (!isValid) return;
+        IsLoading = true;
+        StateHasChanged();
+        var result = new Result<Guid>();
+        switch (iAction)
+        {
+            case 2:
+                if (data != null)
+                {
+                    result = await Mediator.Send(new DeleteServiceCommand { Id = data.Id });
+                    if (result.Succeeded)
+                    {
+                        _items = _items?.Where(w => w.Id != data.Id).ToList();
+                    }
+                }
+
+                break;
+            default:
+                result = await Mediator.Send(new AddEditServiceCommand()
+                {
+                    Request = new AddEditDataRequest<CServiceDto>()
+                    {
+                        Data = data!,
+                        Action = iAction == 1 ? ActionCommandType.Edit : ActionCommandType.Add,
+                    }
+                });
+                if (result.Succeeded)
+                {
+                    if (iAction != 1)
+                    {
+                        data!.Id = result.Data;
+                        _items?.Add(data);
+                    }
+                    else
+                    {
+                        var oFind = _items!.FirstOrDefault(w => w.Id == data!.Id);
+                        if (oFind != null)
+                        {
+                            data.Adapt(oFind);
+                        }
+                    }
+                }
+
+                break;
+        }
+
+        await ShowAlert(result.Messages[0], result.Succeeded ? 0 : 1);
+        IsLoading = false;
+        InitDataTable = true;
+        StateHasChanged();
+        await ToggleModal();
+    }
+
+}

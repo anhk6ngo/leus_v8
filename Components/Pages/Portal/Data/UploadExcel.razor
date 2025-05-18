@@ -1,0 +1,119 @@
+﻿@page "/portal/upload"
+@using Leus.Application.Features.Catalog.Queries
+@attribute [Authorize]
+@inject IExcelService ExcelService
+<PageTitle>Upload Excel File</PageTitle>
+<SectionContent SectionName="@NavConstants.TopLeft">
+    <Breadcrumb Slash="true"></Breadcrumb>
+    <Breadcrumb TextMuted="true">Upload - Download</Breadcrumb>
+</SectionContent>
+
+<div class="card card-page">
+    <div class="card-body">
+        <Upload IsLoading="IsLoading" BtnClass="btn-custom" IsLoadingFile="IsLoadingFile"
+                OnChangeUpload="OnChangeLoadFile" OnUploadFileCallback="UploadFile"
+                ShowDownload="true" OnDownloadFileCallback="DownloadFile"/>
+    </div>
+</div>
+
+@code{
+
+    private List<IBrowserFile> _loadedFiles = new();
+    private string? CustomerId { get; set; }
+    [CascadingParameter] private UserInfo? ShareUserInfo { get; set; }
+
+    private UploadCommandRequest _uploadRequest = new()
+    {
+        TypeUpload = 1,
+        Files = new List<UploadRequest>(),
+    };
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            CustomerId = await Mediator.Send(new GetAllCustomerByEmailQuery()
+            {
+                Email = $"{ShareUserInfo?.Email}"
+            });
+        }
+    }
+    
+    private void OnChangeLoadFile(InputFileChangeEventArgs e)
+    {
+        IsLoadingFile = true;
+        _loadedFiles.Clear();
+        foreach (var file in e.GetMultipleFiles(20))
+        {
+            try
+            {
+                _loadedFiles.Add(file);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        IsLoadingFile = false;
+    }
+
+    public async Task UploadFile(MouseEventArgs eventArgs)
+    {
+        var isConfirm = await Confirm("Do you want to upload excel file");
+        if (!isConfirm) return;
+        IsLoading = true;
+        StateHasChanged();
+        long maxFileSize = 1024 * 1024 * 20;
+        var upload = false;
+
+        foreach (var iFile in _loadedFiles)
+        {
+            try
+            {
+                var memoryStream = new MemoryStream();
+                await iFile.OpenReadStream(maxFileSize).CopyToAsync(memoryStream);
+                _uploadRequest.Files!.Add(new UploadRequest()
+                {
+                    Data = memoryStream.ToArray(),
+                    FileName = iFile.Name
+                });
+                upload = true;
+            }
+            catch (Exception ex)
+            {
+                await ShowAlert(ex.Message, 1);
+                return;
+            }
+        }
+
+        if (upload)
+        {
+            _uploadRequest.UserId = CustomerId;
+            var results = await ExcelService.UpLoad(_uploadRequest);
+            foreach (var uploadResult in results)
+            {
+                await ShowAlert($"{uploadResult.FileName}", uploadResult.Uploaded ? 0 : 1);
+            }
+        }
+        _uploadRequest.Files = new List<UploadRequest>();
+        IsLoading = false;
+    }
+
+    private async Task DownloadFile()
+    {
+        IsLoading = true;
+        StateHasChanged();
+        var rq = new GetReportRequest()
+        {
+            TypeExport = _uploadRequest.TypeUpload
+        };
+        var result = await ExcelService.DownloadTemplate(rq);
+        if (result.content.Length > 0)
+        {
+            await BlazorDownloadFile(result.code, MimeTypes.TextXlsx, result.content);
+        }
+        IsLoading = false;
+        StateHasChanged();
+    }
+}

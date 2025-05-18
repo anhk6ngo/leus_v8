@@ -1,0 +1,157 @@
+﻿@page "/Account/Profile-Data"
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Identity
+
+
+@inject UserManager<CustomUser> UserManager
+@inject SignInManager<CustomUser> SignInManager
+@inject IdentityUserAccessor UserAccessor
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Profile</PageTitle>
+
+<h3>Profile</h3>
+<StatusMessage />
+<EditForm Model="Input" FormName="profile" OnValidSubmit="OnValidSubmitAsync" method="post">
+    <DataAnnotationsValidator />
+    <ValidationSummary class="text-danger" role="alert" />
+    <div class="form-floating mb-3">
+        <input type="text" value="@username" class="form-control" placeholder="Please choose your username." disabled />
+        <label for="username" class="form-label">Username</label>
+    </div>
+    <div class="form-floating mb-3">
+        <InputText @bind-Value="Input.PhoneNumber" class="form-control" placeholder="Please enter your phone number." />
+        <label for="phone-number" class="form-label">Phone number</label>
+        <ValidationMessage For="() => Input.PhoneNumber" class="text-danger" />
+    </div>
+    <div class="form-floating mb-3">
+        <InputText @bind-Value="Input.SendTo" class="form-control" placeholder="Sent To" />
+        <label for="email" class="form-label">Sent To (Email)</label>
+        <ValidationMessage For="() => Input.SendTo" class="text-danger" />
+    </div>
+    <div class="form-floating mb-3">
+        <InputText @bind-Value="Input.Receiver" class="form-control" placeholder="Receiver" />
+        <label for="receiver" class="form-label">Receiver</label>
+        <ValidationMessage For="() => Input.Receiver" class="text-danger" />
+    </div>
+    <div class="row">
+        <div class="col">
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.SignIn" class="form-control" placeholder="Sign-in" />
+                <label for="sign-in" class="form-label">Sign-in</label>
+                <ValidationMessage For="() => Input.SignIn" class="text-danger" />
+            </div>
+        </div>
+        <div class="col">
+            <div class="form-floating mb-3">
+                <InputText type="password" @bind-Value="Input.PassWord" class="form-control" aria-required="true" placeholder="Password" />
+                <label for="password" class="form-label">Password</label>
+                <ValidationMessage For="() => Input.PassWord" class="text-danger" />
+            </div>
+        </div>
+        <div class="col">
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.DutyCode" class="form-control" placeholder="Duty Code" />
+                <label for="duty-code" class="form-label">Duty Code</label>
+                <ValidationMessage For="() => Input.DutyCode" class="text-danger" />
+            </div>
+        </div>
+        </div>
+    <button type="submit" class="w-100 btn btn-lg btn-custom">Save</button>
+</EditForm>
+<SectionContent SectionName="TbRight">
+    <DisplayRightImage Image="images/profiledata.svg"></DisplayRightImage>
+</SectionContent>
+@code {
+    private CustomUser user = default!;
+    private string? username;
+    private string? phoneNumber;
+    private string? signIn;
+    private string? sentTo;
+    private string? receiver;
+    
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (HttpContext == null) return;
+        user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+        username = user.Name;
+        phoneNumber = user.PhoneNumber;
+        sentTo = user.SentTo;
+        receiver = user.Receiver;
+        signIn = user.SignIn;
+        Input.PhoneNumber ??= phoneNumber;
+        Input.SendTo ??= sentTo;
+        Input.Receiver ??= receiver;
+        if (signIn.NotIsNullOrEmpty())
+        {
+            var aData = $"{signIn}".SplitExt();
+            if (aData.Length == 3)
+            {
+                Input.SignIn = aData[0];
+                Input.PassWord = aData[1];
+                Input.DutyCode = aData[2];    
+            }
+        }
+    }
+
+    private async Task OnValidSubmitAsync()
+    {
+        if (Input.PhoneNumber != phoneNumber)
+        {
+            var setPhoneResult = await UserManager.SetPhoneNumberAsync(user, Input.PhoneNumber);
+            if (!setPhoneResult.Succeeded)
+            {
+                RedirectManager.RedirectToCurrentPageWithStatus("Error: Failed to set phone number.", HttpContext);
+            }
+        }
+
+        if (Input.SendTo != sentTo)
+        {
+            user.SentTo = Input.SendTo;
+        }
+        if (Input.Receiver != receiver)
+        {
+            user.Receiver = Input.Receiver;
+        }
+        if ($"{Input.SignIn};{Input.PassWord};{Input.DutyCode}" != signIn)
+        {
+            user.SignIn = $"{Input.SignIn};{Input.PassWord};{Input.DutyCode}";
+        }
+        var result = await UserManager.UpdateAsync(user);
+        if (result.Succeeded)
+        {
+            await SignInManager.RefreshSignInAsync(user);
+            RedirectManager.RedirectToCurrentPageWithStatus("Your profile has been updated", HttpContext);
+        }
+        else
+        {
+            RedirectManager.RedirectToCurrentPageWithStatus("The processing is failure", HttpContext);
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [Phone]
+        [Display(Name = "Phone number")]
+        public string? PhoneNumber { get; set; }
+        [EmailAddress]
+        [Display(Name = "Email (Sent To)")]
+        public string? SendTo { get; set; }
+        public string? Receiver { get; set; }
+        [Display(Name = "Sign-in")]
+        public string? SignIn { get; set; }
+        [Display(Name = "Password")]
+        [DataType(DataType.Password)]
+        public string? PassWord { get; set; }
+        [Display(Name = "Duty Code")]
+        public string? DutyCode { get; set; }
+    }
+}

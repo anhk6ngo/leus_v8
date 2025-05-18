@@ -1,0 +1,22 @@
+﻿<label class="form-label required">Unit</label>
+@if (ParentId.NotIsNullOrEmpty())
+{
+    <select class="form-select bg-light-warning" data-control="select2" data-id="unit"
+            data-dropdown-parent="#@ParentId">
+        <option value="0" selected="@(SelectItem == 0)">inch/lb</option>
+        <option value="1" selected="@(SelectItem == 1)">inch/oz</option>
+        <option value="2" selected="@(SelectItem == 2)">cm/kg</option>
+    </select>
+}
+else
+{
+    <select class="form-select bg-light-warning" data-control="select2" data-id="unit">
+        <option value="0" selected="@(SelectItem == 0)">inch/lb</option>
+        <option value="1" selected="@(SelectItem == 1)">inch/oz</option>
+        <option value="2" selected="@(SelectItem == 2)">cm/kg</option>
+    </select>
+}
+@code {
+    [Parameter] public int SelectItem { get; set; } = 0;
+    [Parameter] public string? ParentId { get; set; } = string.Empty;
+}

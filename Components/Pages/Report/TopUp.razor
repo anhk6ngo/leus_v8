@@ -1,0 +1,144 @@
+﻿@page "/portal/report/top-up"
+@inject IRoleService RoleService
+@attribute [StreamRendering]
+<PageTitle>Top-up</PageTitle>
+<SectionContent SectionName="@NavConstants.TopLeft">
+    <Breadcrumb Slash="true"></Breadcrumb>
+    <Breadcrumb TextMuted="true">Top-up</Breadcrumb>
+</SectionContent>
+<SectionContent SectionName="@NavConstants.TopRight">
+    <div class="d-flex flex-row-auto">
+        <input @bind="DateRange" class="form-control form-control-sm w-200px mx-2" placeholder="Pick date range"
+               id="RangeDate"/>
+        @if (isAcc)
+        {
+            <select class="form-select bg-light-warning me-2" data-control="select2" data-id="config">
+                <option value="">Select Agent</option>
+                @foreach (var iUser in SelectUsers)
+                {
+                    <option value="@iUser.id" selected="@(iUser.id == _request.UserId)">@iUser.text</option>
+                }
+            </select>
+        }
+        <button class="btn btn-sm btn-primary w-100" @onclick="GetData">Get Data</button>
+
+    </div>
+</SectionContent>
+
+@if (IsLoading)
+{
+    <LoadingRotate/>
+}
+<Card Title="List of TopUp">
+    <ChildContent>
+        @if (_items == null || IsLoading)
+        {
+            <Loading/>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover table-rounded table-striped border gy-7 gs-7" id="@UiConstants.TableId">
+                    <thead>
+                    <tr class="fw-semibold fs-6 text-gray-800 border-bottom-2 border-gray-200">
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>Is Deposit</th>
+                        <th>Note</th>
+                        @if (isAcc)
+                        {
+                            <th>Agent</th>
+                        }
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var item in _items)
+                    {
+                        <tr>
+                            <td>@item.ApproveDate.ToDmy()</td>
+                            <td>@item.ApproveAmount?.ToString("N2")</td>
+                            <td>
+                                @if (item.IsDeposit)
+                                {
+                                    <span class="badge badge-primary">Deposit</span>
+                                }
+                            </td>
+                            <td>@item.AccNote</td>
+                            @if (isAcc)
+                            {
+                                <td class="min-w-200px">@SelectUsers.FirstOrDefault(w => w.id == item.UserId)?.text</td>
+                            }
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </ChildContent>
+</Card>
+
+@code {
+    private List<CTopUpDto>? _items;
+    private List<RoleUserDto> SelectUsers = new();
+    private bool isAcc = false;
+    [CascadingParameter] private UserInfo? ShareUserInfo { get; set; }
+
+    private GetReportRequest _request = new()
+    {
+        Status = 2,
+        TypeData = 0,
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        DateRange = "".InitDateRange();
+        var lstRole = await RoleService.GetByAsync("", 0, $"{DisplayConstants.Name}", $"{DisplayConstants.Name}");
+        SelectUsers = lstRole.Adapt<List<RoleUserDto>>();
+        isAcc = ShareUserInfo!.Role!.Contains(RoleConstants.AccountingRole);
+        _request.TypeData = isAcc ? 1 : 0;
+        await GetData();
+        InitDataTable = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await SetSelectTextNum();
+            await CallInitRangeDate();
+        }
+
+        if (InitDataTable)
+        {
+            InitDataTable = false;
+            await CallInitialDataTable(true);
+        }
+    }
+
+
+    [JSInvokable]
+    public void UpdateSelect2(string value, string nameControl)
+    {
+        _request!.UserId = value;
+    }
+
+    private async Task GetData()
+    {
+        _request.DateRange = DateRange;
+        IsLoading = true;
+        StateHasChanged();
+        _items = await Mediator.Send(new GetAllTopUpByUserQuery()
+        {
+            Status = 2,
+            DateRange = _request.DateRange,
+            UserId = isAcc ? _request.UserId: ShareUserInfo?.UserId,
+            TypeData = _request.TypeData
+        });
+        _items = _items.OrderByDescending(o => o.ApproveDate).ToList();
+        _request.TypeData = 0;
+        IsLoading = false;
+        InitDataTable = true;
+        StateHasChanged();
+    }
+
+}

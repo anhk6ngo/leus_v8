@@ -1,0 +1,45 @@
+﻿@inherits LeUs.Components.Layout.MainLayout
+@inject NavigationManager NavigationManager
+<HeadContent>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700" />
+    <link rel="stylesheet" href="plugins/datatables/datatables.bundle.css" />
+    <link rel="stylesheet" href="_content/SharedComponent/custom.css" />
+    <link rel="stylesheet" href="plugins/global/plugins.bundle.css" />
+    <link rel="stylesheet" href="css/style.bundle.css" />
+</HeadContent>
+@if (HttpContext is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="d-flex flex-column flex-root" id="kt_app_root">
+        <div class="d-flex flex-column flex-lg-row flex-column-fluid">
+            <div class="d-flex flex-column flex-lg-row-fluid w-lg-50 p-10 order-2 order-lg-1">
+                <div class="d-flex flex-center flex-column flex-lg-row-fluid">
+                    <a href="#" onclick="location.href='/'" class="mb-0 mb-lg-12">
+                        <img alt="Logo" src="images/logo.png" class="mh-180px mh-lg-225px"/>
+                    </a>
+                    <h1>LeUs Logistics</h1>
+                    <div class="w-lg-500px p-10">
+                        @Body
+                    </div>
+                    <a href="#" onclick="location.href='/'" class="btn btn-lg btn-light-primary">Go Home</a>
+                </div>
+            </div>
+            <SectionOutlet SectionName="TbRight"></SectionOutlet>
+        </div>
+    </div>
+}
+
+@code {
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+    protected override void OnParametersSet()
+    {
+        if (HttpContext is null)
+        {
+            NavigationManager.Refresh(forceReload: true);
+        }
+    }
+}

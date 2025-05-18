@@ -1,0 +1,105 @@
+﻿<div class="row mb-6">
+    <div class="col-md-4">
+        <label class="form-label required">Name</label>
+        <InputText type="text" @bind-Value="@Data!.Name" class="form-control maxlength"
+                   maxlength="50"/>
+        <ValidationMessage For="@(() => Data.Name)"/>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label">Company</label>
+        <InputText type="text" @bind-Value="@Data!.Company" class="form-control maxlength"
+                   maxlength="50"/>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label required">Country</label>
+        <select class="form-select bg-light-warning" data-control="select2" data-id="@ForAddress">
+            <option value="">Select Item</option>
+            @if (LCountry is { Count: > 0 })
+            {
+                foreach (var item in LCountry)
+                {
+                    <option value="@item.CountryCode"
+                            selected="@(item.CountryCode == Data.CountryCode)">@item.CountryCode @item.CountryName</option>
+                }
+            }
+        </select>
+    </div>
+</div>
+<div class="row mb-6">
+    <div class="col-md-4">
+        <label class="form-label required">Post Code</label>
+        <InputText type="text" @bind-Value="@Data!.Zip" class="form-control maxlength"
+                   maxlength="50"/>
+        <ValidationMessage For="@(() => Data.Zip)"/>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label required">Address</label>
+        <InputText type="text" @bind-Value="@Data!.AddressLine1" class="form-control maxlength"
+                   maxlength="50"/>
+        <ValidationMessage For="@(() => Data.AddressLine1)"/>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label">Address 2</label>
+        <InputText type="text" @bind-Value="@Data!.AddressLine2" class="form-control maxlength"
+                   maxlength="50"/>
+    </div>
+
+</div>
+<div class="row mb-6">
+    <div class="col-md-4">
+        <label class="form-label required">City</label>
+        <InputText type="text" @bind-Value="@Data!.City" class="form-control maxlength"
+                   maxlength="50"/>
+        <ValidationMessage For="@(() => Data.City)"/>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label">State</label>
+        <InputText type="text" @bind-Value="@Data!.State" class="form-control maxlength"
+                   maxlength="50"/>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label required">Phone</label>
+        <InputText type="text" @bind-Value="@Data!.Phone" class="form-control maxlength"
+                   maxlength="50"/>
+        <ValidationMessage For="@(() => Data.Phone)"/>
+    </div>
+</div>
+<div class="row mb-6">
+    <div class="col-md-4">
+        <label class="form-label">Email</label>
+        <InputText type="text" @bind-Value="@Data!.Email" class="form-control maxlength" maxlength="50"/>
+        <ValidationMessage For="@(() => Data.Email)"/>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label">Identity</label>
+        <InputText type="text" @bind-Value="@Data!.IdNo" class="form-control maxlength"
+                   maxlength="50"/>
+    </div>
+    @if (!IsStore)
+    {
+        <div class="col-md-4">
+            <label class="form-label">Identity</label>
+            <div class="input-group flex-nowrap mb-5">
+                <div class="overflow-hidden flex-grow-1">
+                    <select class="form-select bg-light-warning" data-control="select2" data-id="@(ForAddress)_tax">
+                        @foreach (var item in _lTaxType)
+                        {
+                            <option value="@item"
+                                    selected="@(item == Data.TaxNoType)">@item</option>
+                        }
+                    </select>
+                </div>
+                <InputText type="text" @bind-Value="@Data!.TaxNo" class="form-control maxlength"
+                           maxlength="50"/>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private readonly List<string> _lTaxType = "VAT DAN DTF TAN DUN EIN EOR FED FTZ SSN STA CNP SDT IOSS NO-IOSS OTHER".SplitExt().ToList();
+    [Parameter] public CAddress? Data { get; set; }
+    [Parameter] public required string ForAddress { get; set; } = "consignee";
+    [Parameter] public List<CCountryDto> LCountry { get; set; } = [];
+    [Parameter] public bool IsStore { get; set; }
+}

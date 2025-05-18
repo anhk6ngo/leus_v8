@@ -1,0 +1,204 @@
+﻿@page "/portal/store-address"
+@using Leus.Application.Features.Catalog.Commands
+@using Leus.Application.Features.Catalog.Queries
+@attribute [Authorize(Roles = $"{RoleConstants.InputCatalog},{RoleConstants.AdministratorRole}")]
+<PageTitle>Store Address</PageTitle>
+<SectionContent SectionName="@NavConstants.TopLeft">
+    <Breadcrumb Slash="true"></Breadcrumb>
+    <Breadcrumb TextMuted="true">Store Address</Breadcrumb>
+</SectionContent>
+<SectionContent SectionName="@NavConstants.TopRight">
+    <button class="btn btm-sm btn-custom align-self-center" @onclick="() => FormAction(-1, 0)">
+        <i class="fa fa-plus-square"></i>Add new
+    </button>
+</SectionContent>
+@if (IsLoading)
+{
+    <LoadingRotate/>
+}
+<Card Title="List of Store Address">
+    @if (_items == null || IsLoading)
+    {
+        <Loading/>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover table-rounded table-striped border gy-7 gs-7" id="@UiConstants.TableId">
+                <thead>
+                <tr class="fw-semibold fs-6 text-gray-800 border-bottom-2 border-gray-200">
+                    <th>Name</th>
+                    <th>Address</th>
+                    <th>Action</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var t in _items.WithIndex())
+                {
+                    <tr>
+                        <td>@t.item.Name</td>
+                        <td>@t.item.AddressLine1 @t.item.AddressLine2 @t.item.City @t.item.State @t.item.Zip @t.item.Phone</td>
+                        <td>
+                            <button @key="Guid.NewGuid()" class="btn btn-sm btn-success"
+                                    @onclick="@(() => FormAction(t.index, 1))">
+                                Edit
+                            </button>
+                            <button @key="Guid.NewGuid()" class="btn btn-sm btn-danger"
+                                    @onclick="@(() => FormAction(t.index, 2))">
+                                Delete
+                            </button>
+                            <button @key="Guid.NewGuid()" class="btn btn-sm btn-warning"
+                                    @onclick="@(() => FormAction(t.index, 3))">
+                                Copy
+                            </button>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</Card>
+<CustomModal Title="@($"{Title} Store Address")" OnClickCallback="SaveData" ModalClass="2">
+    <EditForm Model="data" class="form">
+        <FluentValidationValidator @ref="_fluentValidationValidator"/>
+        <InputAddress Data="_baseData" LCountry="Countries" ForAddress="Store Address" IsStore="true"/>
+        <div class="row mb-6">
+            <div class="col-md-9">
+                <label class="form-label">Service Code</label>
+                <InputText type="text" @bind-Value="@data!.ServiceCode" class="form-control maxlength"
+                           maxlength="255"/>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Entry Point</label>
+                <InputText type="text" @bind-Value="@data!.EntryPoint" class="form-control maxlength"
+                           maxlength="10"/>
+            </div>
+        </div>
+        
+    </EditForm>
+</CustomModal>
+
+@code {
+    private List<CStoreAddressDto>? _items;
+    private List<CCountryDto> Countries { get; set; } = [];
+    private CStoreAddressDto? data = new();
+    private CAddress? _baseData = new();
+    private int iAction { get; set; } = 0;
+    private string Title { get; set; } = "Add new";
+    private FluentValidationValidator _fluentValidationValidator = default!;
+    private bool Refresh { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Countries = await Mediator.Send(new GetAllCountryQuery());
+        _items = await Mediator.Send(new GetAllStoreAddressQuery());
+        InitDataTable = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (InitDataTable)
+        {
+            InitDataTable = false;
+            await CallInitialDataTable();
+        }
+
+        if (Refresh)
+        {
+            Refresh = false;
+            await SetSelectTextNum();
+        }
+    }
+
+    [JSInvokable]
+    public void UpdateSelect2(string value, string controlId)
+    {
+        data!.CountryCode = value;
+        data.County = Countries.Find(w => w.CountryCode == value)?.CountryName;
+    }
+
+
+    private async Task FormAction(int index, int action)
+    {
+        data = new CStoreAddressDto();
+        if (index >= 0)
+        {
+            _items![index].Adapt(data);
+        }
+
+        iAction = action;
+        Title = action switch
+        {
+            1 => "Edit",
+            2 => "Delete",
+            _ => "Add new"
+        };
+        if (action == 3)
+        {
+            data.Id = Guid.Empty;
+        }
+
+        await ToggleModal();
+        data.Adapt(_baseData);
+        Refresh = true;
+    }
+
+    private async Task SaveData()
+    {
+        _baseData.Adapt(data);
+        var isValid = _fluentValidationValidator.Validate(o => o.IncludeAllRuleSets());
+        if (!isValid) return;
+        IsLoading = true;
+        StateHasChanged();
+        var result = new Result<Guid>();
+        switch (iAction)
+        {
+            case 2:
+                if (data != null)
+                {
+                    result = await Mediator.Send(new DeleteStoreAddressCommand { Id = data.Id });
+                    if (result.Succeeded)
+                    {
+                        _items = _items?.Where(w => w.Id != data.Id).ToList();
+                    }
+                }
+
+                break;
+            default:
+                result = await Mediator.Send(new AddEditStoreAddressCommand()
+                {
+                    Request = new AddEditDataRequest<CStoreAddressDto>()
+                    {
+                        Data = data!,
+                        Action = iAction == 1 ? ActionCommandType.Edit : ActionCommandType.Add,
+                    }
+                });
+                if (result.Succeeded)
+                {
+                    if (iAction != 1)
+                    {
+                        data!.Id = result.Data;
+                        _items?.Add(data);
+                    }
+                    else
+                    {
+                        var oFind = _items!.FirstOrDefault(w => w.Id == data!.Id);
+                        if (oFind != null)
+                        {
+                            data.Adapt(oFind);
+                        }
+                    }
+                }
+
+                break;
+        }
+
+        await ShowAlert(result.Messages[0], result.Succeeded ? 0 : 1);
+        IsLoading = false;
+        InitDataTable = true;
+        StateHasChanged();
+        await ToggleModal();
+    }
+
+}

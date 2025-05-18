@@ -1,0 +1,119 @@
+﻿@page "/Account/Login"
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Identity
+@using SharedKernel.Models.Identity
+
+@inject SignInManager<CustomUser> SignInManager
+@inject IdentityRedirectManager RedirectManager
+@inject NavigationManager NavigationManager
+@using Microsoft.AspNetCore.Antiforgery
+@attribute [RequireAntiforgeryToken(required: false)]
+<PageTitle>Log in</PageTitle>
+<StatusMessage Message="@errorMessage"/>
+<EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
+    <DataAnnotationsValidator/>
+    <h2>Use a local account to log in.</h2>
+    <hr/>
+    <ValidationSummary class="text-danger" role="alert"/>
+    <div class="form-floating mb-3">
+        <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" aria-required="true"
+                   placeholder="name@example.com"/>
+        <label for="email" class="form-label">Email</label>
+        <ValidationMessage For="() => Input.Email" class="text-danger"/>
+    </div>
+    <div class="form-floating mb-3">
+        <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="current-password"
+                   aria-required="true" placeholder="password"/>
+        <label for="password" class="form-label">Password</label>
+        <ValidationMessage For="() => Input.Password" class="text-danger"/>
+    </div>
+    <div class="d-flex flex-stack flex-wrap gap-3 fs-base fw-semibold mb-8">
+        <div class="form-check form-switch form-check-custom form-check-success form-check-solid">
+            <InputCheckbox @bind-Value="Input.RememberMe" class="form-check-input" id="kt_flexSwitchCustomDefault_1_1"/>
+            <label class="form-check-label" for="kt_flexSwitchCustomDefault_1_1">
+                Remember me
+            </label>
+        </div>
+        <button type="button" class="btn btn-link text-primary">Forgot your password?</button>
+    </div>
+    <div class="mb-10">
+        <button type="submit" class="w-100 btn btn-lg btn-custom">Log in</button>
+    </div>
+    <div class="text-gray-500 text-center fw-semibold fs-6">
+        Not a Member yet?
+        <a href="/Account/Register" class="link-primary">
+            Sign up
+        </a>
+    </div>
+    @* <div class="text-gray-500 text-center fw-semibold fs-6"> *@
+    @*     <a href="Account/ResendEmailConfirmation">Resend email confirmation</a> *@
+    @* </div> *@
+</EditForm>
+<SectionContent SectionName="TbRight">
+    <DisplayRightImage Image="images/signin.svg"></DisplayRightImage>
+</SectionContent>
+
+@code {
+    private string? errorMessage;
+
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm] private InputModel Input { get; set; } = new();
+
+    [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (HttpMethods.IsGet(HttpContext.Request.Method))
+        {
+            await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+        }
+    }
+
+    public async Task LoginUser()
+    {
+        try
+        {
+            var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: true);
+            if (result.Succeeded)
+            {
+                NavigationManager.NavigateTo("/portal", forceLoad: true);
+            }
+            else if (result.RequiresTwoFactor)
+            {
+                RedirectManager.RedirectTo(
+                    "Account/LoginWith2fa",
+                    new Dictionary<string, object?> { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
+            }
+            else if (result.IsLockedOut)
+            {
+                RedirectManager.RedirectTo("Account/Lockout");
+            }
+            else
+            {
+                errorMessage = "Error: Invalid login attempt.";
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [Required] [EmailAddress] public string Email { get; set; } = "";
+
+        [Required]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = "";
+
+        [Display(Name = "Remember me?")] public bool RememberMe { get; set; }
+    }
+
+}

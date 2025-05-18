@@ -1,0 +1,27 @@
+﻿@using System.Net.Http
+@using System.Net.Http.Json
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components.Web
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
+@using Microsoft.AspNetCore.Components.Web.Virtualization
+@using Microsoft.JSInterop
+@using LeUs
+@using LeUs.Components
+@using SharedExtension.Constants
+@using Microsoft.AspNetCore.Components.Sections
+@inject IJSRuntime JsRuntime
+@inject IMediator Mediator
+@using SharedComponent
+@inherits BasePage
+@using LeUs.Application.Reponses
+@using Microsoft.AspNetCore.Authorization
+@using SharedComponent.Constants
+@using Blazored.FluentValidation
+@using SharedKernel.Enums
+@using LeUs.Application.Dtos.Data
+@using LeUs.Application.Dtos.Catalog
+@using Leus.Application.Features.Data.Queries
+@using LeUs.Components.Shared
+@using LeUs.Application.Dtos.Gps

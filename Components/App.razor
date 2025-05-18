@@ -1,0 +1,632 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <base href="/"/>
+    <HeadOutlet @rendermode="RenderModeForPage" />
+    <link rel="icon" type="image/png" href="/favicon.png"/>
+</head>
+
+<body id="kt_app_body" data-kt-app-layout="light-header" data-kt-app-header-fixed="true"
+      data-kt-app-toolbar-enabled="true" data-kt-app-toolbar-fixed="false" data-kt-app-toolbar-fixed-mobile="false"
+      class="app-default">
+<script>
+    loaded = [];
+    window.loadScript = function (e) {
+        return loaded[e] ? new this.Promise(function (e, t) {
+            e()
+        }) : new Promise(function (t, a) {
+            let n = document.createElement("script");
+            n.src = e,
+                n.type = "text/javascript",
+                loaded[e] = !0,
+                n.onload = function () {
+                    t(e)
+                },
+                n.onerror = function () {
+                    a(e)
+                },
+                document.body.appendChild(n)
+        })
+    };
+    window.fixedToolbar = (e) => {
+        document.body.setAttribute("data-kt-app-toolbar-fixed", e);
+        document.body.setAttribute("data-kt-app-toolbar-fixed-mobile", e);
+    };
+    let defaultThemeMode = "dark";
+    let themeMode;
+    if (document.documentElement) {
+        if (document.documentElement.hasAttribute("data-bs-theme-mode")) {
+            themeMode = document.documentElement.getAttribute("data-bs-theme-mode");
+        } else {
+            if (localStorage.getItem("data-bs-theme") !== null) {
+                themeMode = localStorage.getItem("data-bs-theme");
+            } else {
+                themeMode = defaultThemeMode;
+            }
+        }
+
+        if (themeMode === "system") {
+            themeMode = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        }
+
+        document.documentElement.setAttribute("data-bs-theme", themeMode);
+    }
+    window.initTheme = () => {
+        KTComponents.init();
+        KTThemeMode.init();
+    }
+    window.initLanding = () => {
+        (function ($) {
+            'use strict';
+            if ($(".reveal").length) {
+                gsap.registerPlugin(ScrollTrigger);
+                let revealContainers = document.querySelectorAll(".reveal");
+                revealContainers.forEach((container) => {
+                    let image = container.querySelector("img");
+                    let tl = gsap.timeline({
+                        scrollTrigger: {
+                            trigger: container,
+                            toggleActions: "play none none none",
+                        },
+                    });
+                    tl.set(container, {
+                        autoAlpha: 1,
+                    });
+                    tl.from(container, 1.5, {
+                        xPercent: -100,
+                        ease: Power2.out,
+                    });
+                    tl.from(image, 1.5, {
+                        xPercent: 100,
+                        scale: 1.3,
+                        delay: -1.5,
+                        ease: Power2.out,
+                    });
+                });
+            }
+            if ($(".slider-one__carousel").length) {
+                $(".slider-one__carousel").owlCarousel({
+                    loop: true,
+                    animateOut: "fadeOut",
+                    animateIn: "fadeIn",
+                    margin: 0,
+                    nav: true,
+                    dots: false,
+                    smartSpeed: 500,
+                    autoplay: true,
+                    autoplayTimeout: 7000,
+                    navText: [
+                        '<span class="icon-right-arrow2"></span>',
+                        '<span class="icon-right-arrow21"></span>',
+                    ],
+                    responsive: {
+                        0: {
+                            items: 1,
+                        },
+                        600: {
+                            items: 1,
+                        },
+                        800: {
+                            items: 1,
+                        },
+                        992: {
+                            items: 1,
+                        },
+                    },
+                });
+            }
+            if ($(".service-one__carousel").length) {
+                $(".service-one__carousel").owlCarousel({
+                    loop: true,
+                    margin: 30,
+                    nav: false,
+                    dots: true,
+                    smartSpeed: 500,
+                    autoplay: true,
+                    autoplayTimeout: 7000,
+                    navText: [
+                        '<span class="icon-left-arrow"></span>',
+                        '<span class="icon-right-arrow"></span>',
+                    ],
+                    responsive: {
+                        0: {
+                            items: 1,
+                        },
+                        768: {
+                            items: 2,
+                        },
+                        992: {
+                            items: 2,
+                        },
+                        1200: {
+                            items: 3,
+                        },
+                        1320: {
+                            items: 3,
+                        },
+                    },
+                });
+            }
+            //Progress Count Bar
+            if ($(".count-bar").length) {
+                $(".count-bar").appear(
+                    function () {
+                        var el = $(this);
+                        var percent = el.data("percent");
+                        $(el).css("width", percent).addClass("counted");
+                    }, {
+                        accY: -50,
+                    }
+                );
+            }
+            //Progress Bar / Levels
+            if ($(".progress-levels .progress-box .bar-fill").length) {
+                $(".progress-box .bar-fill").each(
+                    function () {
+                        $(".progress-box .bar-fill").appear(function () {
+                            var progressWidth = $(this).attr("data-percent");
+                            $(this).css("width", progressWidth + "%");
+                        });
+                    }, {
+                        accY: 0,
+                    }
+                );
+            }
+            //Fact Counter + Text Count
+            if ($(".count-box").length) {
+                $(".count-box").appear(
+                    function () {
+                        var $t = $(this),
+                            n = $t.find(".count-text").attr("data-stop"),
+                            r = parseInt($t.find(".count-text").attr("data-speed"), 10);
+
+                        if (!$t.hasClass("counted")) {
+                            $t.addClass("counted");
+                            $({
+                                countNum: $t.find(".count-text").text(),
+                            }).animate({
+                                countNum: n,
+                            }, {
+                                duration: r,
+                                easing: "linear",
+                                step: function () {
+                                    $t.find(".count-text").text(Math.floor(this.countNum));
+                                },
+                                complete: function () {
+                                    $t.find(".count-text").text(this.countNum);
+                                },
+                            });
+                        }
+                    }, {
+                        accY: 0,
+                    }
+                );
+            }
+
+            function dynamicCurrentMenuClass(selector) {
+                let FileName = window.location.href.split("/").reverse()[0];
+
+                selector.find("li").each(function () {
+                    let anchor = $(this).find("a");
+                    if ($(anchor).attr("href") == FileName) {
+                        $(this).addClass("current");
+                    }
+                });
+                // if any li has .current elmnt add class
+                selector.children("li").each(function () {
+                    if ($(this).find(".current").length) {
+                        $(this).addClass("current");
+                    }
+                });
+                // if no file name return
+                if ("" == FileName) {
+                    selector.find("li").eq(0).addClass("current");
+                }
+            }
+
+            if ($(".main-menu__list").length) {
+                // dynamic current class
+                let mainNavUL = $(".main-menu__list");
+                dynamicCurrentMenuClass(mainNavUL);
+            }
+
+            // if ($(".main-menu__list").length && $(".mobile-nav__container").length) {
+            //     let navContent = document.querySelector(".main-menu__list").outerHTML;
+            //     let mobileNavContainer = document.querySelector(".mobile-nav__container");
+            //     mobileNavContainer.innerHTML = navContent;
+            // }
+
+            if ($(".sticky-header__content").length) {
+                let navContent = document.querySelector(".main-menu").innerHTML;
+                let mobileNavContainer = document.querySelector(".sticky-header__content");
+                mobileNavContainer.innerHTML = navContent;
+            }
+
+            if ($(".mobile-nav__container .main-menu__list").length) {
+                let dropdownAnchor = $(".mobile-nav__container .main-menu__list .dropdown > a");
+                dropdownAnchor.each(function () {
+                    let self = $(this);
+                    let toggleBtn = document.createElement("BUTTON");
+                    toggleBtn.setAttribute("aria-label", "dropdown toggler");
+                    toggleBtn.innerHTML = "<i class='fa fa-angle-down'></i>";
+                    self.append(function () {
+                        return toggleBtn;
+                    });
+                    self.find("button").on("click", function (e) {
+                        e.preventDefault();
+                        let self = $(this);
+                        self.toggleClass("expanded");
+                        self.parent().toggleClass("expanded");
+                        self.parent().parent().children("ul").slideToggle();
+                    });
+                });
+            }
+
+            if ($(".mobile-nav__toggler").length) {
+                $(".mobile-nav__toggler").on("click", function (e) {
+                    e.preventDefault();
+                    $(".mobile-nav__wrapper").toggleClass("expanded");
+                    $("body").toggleClass("locked");
+                });
+            }
+
+            if ($(".search-toggler").length) {
+                $(".search-toggler").on("click", function (e) {
+                    e.preventDefault();
+                    $(".search-popup").toggleClass("active");
+                    $(".mobile-nav__wrapper").removeClass("expanded");
+                    $("body").toggleClass("locked");
+                });
+            }
+
+            if ($(".wow").length) {
+                var wow = new WOW({
+                    boxClass: "wow", // animated element css class (default is wow)
+                    animateClass: "animated", // animation css class (default is animated)
+                    mobile: true, // trigger animations on mobile devices (default is true)
+                    live: true, // act on asynchronously loaded content (default is true)
+                });
+                wow.init();
+            }
+
+            if ($(".tabs-box").length) {
+                $(".tabs-box .tab-buttons .tab-btn").on("click", function (e) {
+                    e.preventDefault();
+                    var target = $($(this).attr("data-tab"));
+
+                    if ($(target).is(":visible")) {
+                        return false;
+                    } else {
+                        target
+                            .parents(".tabs-box")
+                            .find(".tab-buttons")
+                            .find(".tab-btn")
+                            .removeClass("active-btn");
+                        $(this).addClass("active-btn");
+                        target.parents(".tabs-box").find(".tabs-content").find(".tab").fadeOut(0);
+                        target
+                            .parents(".tabs-box")
+                            .find(".tabs-content")
+                            .find(".tab")
+                            .removeClass("active-tab");
+                        $(target).fadeIn(300);
+                        $(target).addClass("active-tab");
+                    }
+                });
+            }
+            //Processing goto Top
+            let progressPath = document.querySelector('.progress-wrap path');
+            let pathLength = progressPath.getTotalLength();
+            progressPath.style.transition = progressPath.style.WebkitTransition = 'none';
+            progressPath.style.strokeDasharray = pathLength + ' ' + pathLength;
+            progressPath.style.strokeDashoffset = pathLength;
+            progressPath.getBoundingClientRect();
+            progressPath.style.transition = progressPath.style.WebkitTransition = 'stroke-dashoffset 10ms linear';
+            let updateProgress = function () {
+                let scroll = $(window).scrollTop();
+                let height = $(document).height() - $(window).height();
+                let progress = pathLength - (scroll * pathLength / height);
+                progressPath.style.strokeDashoffset = progress;
+            }
+            updateProgress();
+            $(window).scroll(updateProgress);
+            let offset = 50;
+            let duration = 550;
+            $(window).on('scroll', function () {
+                if ($(this).scrollTop() > offset) {
+                    $('.progress-wrap').addClass('active-progress');
+                } else {
+                    $('.progress-wrap').removeClass('active-progress');
+                }
+            });
+            $('.progress-wrap').on('click', function (event) {
+                event.preventDefault();
+                $('html, body').animate({scrollTop: 0}, duration);
+                return false;
+            })
+            // window scroll event
+            $(window).on("scroll", function () {
+                if ($(".stricked-menu").length) {
+                    var headerScrollPos = 130;
+                    var stricky = $(".stricked-menu");
+                    if ($(window).scrollTop() > headerScrollPos) {
+                        stricky.addClass("stricky-fixed");
+                    } else if ($(this).scrollTop() <= headerScrollPos) {
+                        stricky.removeClass("stricky-fixed");
+                    }
+                }
+            });
+
+            /*=============================================
+                Tg Title Animation	      
+            =============================================*/
+
+            gsap.registerPlugin(ScrollTrigger, SplitText);
+            gsap.config({
+                nullTargetWarn: false,
+                trialWarn: false,
+            });
+
+            function tg_title_animation() {
+                var tg_var = jQuery(".tg-heading-subheading");
+                if (!tg_var.length) {
+                    return;
+                }
+                const quotes = document.querySelectorAll(".tg-heading-subheading .tg-element-title");
+
+                quotes.forEach((quote) => {
+                    //Reset if needed
+                    if (quote.animation) {
+                        quote.animation.progress(1).kill();
+                        quote.split.revert();
+                    }
+
+                    var getclass = quote.closest(".tg-heading-subheading").className;
+                    var animation = getclass.split("animation-");
+                    if (animation[1] == "style4") return;
+
+                    quote.split = new SplitText(quote, {
+                        type: "lines,words,chars",
+                        linesClass: "split-line",
+                    });
+                    gsap.set(quote, {
+                        perspective: 400,
+                    });
+
+                    if (animation[1] == "style1") {
+                        gsap.set(quote.split.chars, {
+                            opacity: 0,
+                            y: "90%",
+                            rotateX: "-40deg",
+                        });
+                    }
+                    if (animation[1] == "style2") {
+                        gsap.set(quote.split.chars, {
+                            opacity: 0,
+                            x: "50",
+                        });
+                    }
+                    if (animation[1] == "style3") {
+                        gsap.set(quote.split.chars, {
+                            opacity: 0,
+                        });
+                    }
+                    quote.animation = gsap.to(quote.split.chars, {
+                        scrollTrigger: {
+                            trigger: quote,
+                            start: "top 90%",
+                        },
+                        x: "0",
+                        y: "0",
+                        rotateX: "0",
+                        opacity: 1,
+                        duration: 1,
+                        ease: Back.easeOut,
+                        stagger: 0.02,
+                    });
+                });
+            }
+
+            ScrollTrigger.addEventListener("refresh", tg_title_animation);
+        })(jQuery);
+    }
+    window.initFixTable = (e, cs = 1, ce = 0) => {
+        $('#' + e).DataTable({
+            fixedColumns: {
+                start: cs,
+                end: ce
+            },
+            fixedHeader: true,
+            ordering: false,
+            page: false,
+            search: true,
+            scrollCollapse: true,
+            scrollX: true,
+            scrollY: 300,
+            "displayLength": 50,
+            dom: "<'row'<'col-sm-6 d-flex align-items-center justify-content-start'l><'col-sm-6 d-flex align-items-center justify-content-end'f>><'table-responsive'tr><'row'<'col-sm-12 col-md-5 d-flex align-items-center justify-content-center justify-content-md-start'i><'col-sm-12 col-md-7 d-flex align-items-center justify-content-center justify-content-md-end'p>>"
+        });
+    }
+    window.initChartLine = (id, data, cat) => {
+        let element = document.getElementById(id);
+
+        let height = parseInt(KTUtil.css(element, 'height'));
+        let labelColor = KTUtil.getCssVariableValue("--bs-gray-500");
+        let borderColor = KTUtil.getCssVariableValue('--bs-gray-200');
+        let baseColor = KTUtil.getCssVariableValue("--bs-success");
+        let lightColor = KTUtil.getCssVariableValue('--bs-success-light');
+        if (!element) {
+            return;
+        }
+
+        let options = {
+            series: data,
+            chart: {
+                fontFamily: 'inherit',
+                type: 'area',
+                height: height,
+                toolbar: {
+                    show: false
+                }
+            },
+            plotOptions: {},
+            legend: {
+                show: false
+            },
+            dataLabels: {
+                enabled: false
+            },
+            fill: {
+                type: 'solid',
+                opacity: 1
+            },
+            stroke: {
+                curve: 'smooth',
+                show: true,
+                width: 3,
+                colors: [baseColor]
+            },
+            xaxis: {
+                categories: cat,
+                axisBorder: {
+                    show: false,
+                },
+                axisTicks: {
+                    show: false
+                },
+                labels: {
+                    style: {
+                        colors: labelColor,
+                        fontSize: '12px'
+                    }
+                },
+                crosshairs: {
+                    position: 'front',
+                    stroke: {
+                        color: baseColor,
+                        width: 1,
+                        dashArray: 3
+                    }
+                },
+                tooltip: {
+                    enabled: true,
+                    formatter: undefined,
+                    offsetY: 0,
+                    style: {
+                        fontSize: '12px'
+                    }
+                }
+            },
+            yaxis: {
+                labels: {
+                    style: {
+                        colors: labelColor,
+                        fontSize: '12px'
+                    }
+                }
+            },
+            states: {
+                normal: {
+                    filter: {
+                        type: 'none',
+                        value: 0
+                    }
+                },
+                hover: {
+                    filter: {
+                        type: 'none',
+                        value: 0
+                    }
+                },
+                active: {
+                    allowMultipleDataPointsSelection: false,
+                    filter: {
+                        type: 'none',
+                        value: 0
+                    }
+                }
+            },
+            tooltip: {
+                style: {
+                    fontSize: '12px'
+                },
+                y: {
+                    formatter: function (val) {
+                        return '$' + val
+                    }
+                }
+            },
+            colors: [lightColor],
+            grid: {
+                borderColor: borderColor,
+                strokeDashArray: 4,
+                yaxis: {
+                    lines: {
+                        show: true
+                    }
+                }
+            },
+            markers: {
+                strokeColor: baseColor,
+                strokeWidth: 3
+            }
+        };
+
+        let chart = new ApexCharts(element, options);
+        chart.render();
+    }
+    window.initChartDotNut = (id, data, cat) => {
+        let element = document.getElementById(id);
+        if (!element) {
+            return;
+        }
+        let options = {
+            series: data,
+            chart: {
+                width: 380,
+                fontFamily: "inherit",
+                type: "donut",
+            },
+            labels: cat,
+            plotOptions: {
+                pie: {
+                    donut: {
+                        size: "50%",
+                        labels: {
+                            value: {
+                                fontSize: "10px"
+                            }
+                        }
+                    }
+                }
+            },
+            stroke: {
+                width: 0
+            }
+        };
+
+        let chart = new ApexCharts(element, options);
+        chart.render();
+    }
+</script>
+<Routes @rendermode="RenderModeForPage"/>
+<script src="plugins/global/plugins.bundle.js"></script>
+<script src="js/scripts.bundle.js"></script>
+<script src="js/plugins.bundle.js"></script>
+<script src="plugins/datatables/datatables.bundle.js"></script>
+<script src="_content/SharedComponent/customJsInterop.js"></script>
+<script src="_framework/blazor.web.js"></script>
+</body>
+</html>
+
+@code {
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
+
+    private IComponentRenderMode? RenderModeForPage => HttpContext.Request.Path.StartsWithSegments("/Account")
+        ? null
+        : InteractiveServer;
+
+}

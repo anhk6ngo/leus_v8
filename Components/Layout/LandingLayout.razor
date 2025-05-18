@@ -1,0 +1,103 @@
+﻿@inherits LayoutComponentBase
+<HeadContent>
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/plugins.bundle.css"/>
+    <link rel="stylesheet" href="css/style.css"/>
+</HeadContent>
+<div class="page-wrapper">
+    <LandingMenu/>
+    @Body
+</div>
+
+<div class="mobile-nav__wrapper">
+    <div class="mobile-nav__overlay mobile-nav__toggler"></div>
+    <div class="mobile-nav__content">
+        <span class="mobile-nav__close mobile-nav__toggler"><i class="fa fa-times"></i></span>
+        <div class="logo-box">
+            <a href="/" aria-label="logo image"><img src="images/logo.png" height="168" alt=""/></a>
+        </div>
+        <div class="mobile-nav__container">
+            <ul class="main-menu__list">
+                <li>
+                    <a href="#home"
+                       onclick="document.querySelector('.mobile-nav__toggler').click();">Home </a>
+                </li>
+                <li>
+                    <a href="#about"
+                       onclick="document.querySelector('.mobile-nav__toggler').click();">About
+                        Us</a>
+                </li>
+                <li>
+                    <a href="#service"
+                       onclick="document.querySelector('.mobile-nav__toggler').click();">Service</a>
+                </li>
+                <li>
+                    <a href="#contact"
+                       onclick="document.querySelector('.mobile-nav__toggler').click();">Contact</a>
+                </li>
+                <AuthorizeView>
+                    <Authorized>
+                        <li>
+                            <NavLink href="/portal"
+                                     onclick="location.href=this.href;return true;">
+                                Portal
+                            </NavLink>
+                        </li>
+                    </Authorized>
+                    <NotAuthorized>
+                        <li>
+                            <a href="/Account/Login">Login</a>
+                        </li>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </ul>
+        </div>
+        <ul class="mobile-nav__contact list-unstyled">
+            <li>
+                <i class="fa fa-envelope"></i>
+                <a href="mailto:info@leuslogistics.com">info@leuslogistics.com</a>
+            </li>
+        </ul>
+        <div class="mobile-nav__top">
+            <div class="mobile-nav__social">
+                <a href="#" class="fab fa-twitter"></a>
+                <a href="#" class="fab fa-facebook-square"></a>
+                <a href="#" class="fab fa-pinterest-p"></a>
+                <a href="#" class="fab fa-instagram"></a>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="search-popup">
+    <div class="search-popup__overlay search-toggler"></div>
+    <div class="search-popup__content">
+        <form action="#">
+            <label for="search" class="sr-only">search here</label>
+            <input type="text" id="search" placeholder="Search Here...">
+            <button type="submit" aria-label="search submit" class="thm-btn">
+                <i class="fas fa-search"></i>
+                <span class="hover-btn hover-bx"></span>
+                <span class="hover-btn hover-bx2"></span>
+                <span class="hover-btn hover-bx3"></span>
+                <span class="hover-btn hover-bx4"></span>
+            </button>
+        </form>
+    </div>
+</div>
+<div class="progress-wrap cursor-big">
+    <svg class="progress-circle svg-content" width="100%" height="100%" viewBox="-1 -1 102 102">
+        <path d="M50,1 a49,49 0 0,1 0,98 a49,49 0 0,1 0,-98"/>
+    </svg>
+</div>
+
+@code{
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JsRuntime.InvokeVoidAsync("initLanding");
+        }
+    }
+}

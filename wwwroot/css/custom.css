@@ -1,0 +1,18 @@
+﻿.stat-sm {
+    height: 40px;
+    padding: .625rem;
+    width: 40px
+}
+
+.stat-sm svg {
+    height: 20px;
+    width: 20px
+}
+
+.stat-sm i {
+    font-size: 20px
+}
+.col-auto {
+    flex: 0 0 auto;
+    width: auto;
+}

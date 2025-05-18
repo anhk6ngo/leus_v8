@@ -1,0 +1,250 @@
+﻿@page "/portal"
+@using LeUs.Application.Features.Data.Queries
+@* @rendermode @(new InteractiveServerRenderMode(prerender:false)) *@
+<SectionContent SectionName="@NavConstants.TopLeft">
+    <Breadcrumb Slash="true"></Breadcrumb>
+    <Breadcrumb TextMuted="true">Dashboard</Breadcrumb>
+</SectionContent>
+<SectionContent SectionName="@NavConstants.TopRight">
+    <div class="d-flex flex-row-auto">
+        <input @bind="DateRange" class="form-control form-control-sm w-200px mx-2" placeholder="Pick date range"
+               id="RangeDate"/>
+        <button class="btn btn-sm btn-primary w-100" @onclick="GetData">View Report</button>
+
+    </div>
+</SectionContent>
+@if (IsLoading)
+{
+    <LoadingRotate/>
+}
+<div class="row g-5 gx-xl-10 mb-5 mb-xl-10 bg-light-primary">
+    <div class="col-12 col-md-6 col-xxl d-flex">
+        <div class="card flex-fill">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <span class="fs-4 fw-semibold text-gray-500 me-1 align-self-start">$</span>
+                    <span
+                        class="fs-2hx fw-bold text-gray-900 me-2 lh-1 ls-n2">@_balanceDto?.Amount.ToString("N2")</span>
+                </div>
+                <span class="text-gray-500 pt-1 fw-semibold fs-6">Balance</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-6 col-xxl d-flex">
+        <div class="card flex-fill">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <span class="fs-4 fw-semibold text-gray-500 me-1 align-self-start">$</span>
+                    <span
+                        class="fs-2hx fw-bold text-gray-900 me-2 lh-1 ls-n2">@_balanceDto?.DepositAmount.ToString("N2")</span>
+                </div>
+                <span class="text-gray-500 pt-1 fw-semibold fs-6">Deposit</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-6 col-xxl d-flex">
+        <div class="card flex-fill">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <span class="fs-4 fw-semibold text-gray-500 me-1 align-self-start">$</span>
+                    <span
+                        class="fs-2hx fw-bold text-gray-900 me-2 lh-1 ls-n2">@_items?.Sum(s => s.Amount).ToString("N2")</span>
+                </div>
+                <span class="text-gray-500 pt-1 fw-semibold fs-6">Total Amount</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-6 col-xxl d-flex">
+        <div class="card flex-fill">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <i class="me-1 align-self-start ki-duotone ki-abstract-29 text-info fs-2">
+                        <span class="path1"></span>
+                        <span class="path2"></span>
+                    </i>
+                    <span
+                        class="fs-2hx fw-bold text-gray-900 me-2 lh-1 ls-n2">@_items?.Sum(s => s.ActiveNo + s.DeActiveNo)</span>
+                </div>
+                <span class="text-gray-500 pt-1 fw-semibold fs-6">Total Shipment</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-6 col-xxl d-flex">
+        <div class="card flex-fill">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <i class="me-1 align-self-start ki-duotone ki-abstract-29 text-info fs-2">
+                        <span class="path1"></span>
+                        <span class="path2"></span>
+                    </i>
+                    <span
+                        class="fs-2hx fw-bold text-gray-900 me-2 lh-1 ls-n2">@_items?.Sum(s => s.GenerateLabelNo)</span>
+                </div>
+                <span class="text-gray-500 pt-1 fw-semibold fs-6">Total Label</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-6 col-xxl d-flex d-none d-xxl-flex">
+        <div class="card flex-fill">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <i class="me-1 align-self-start ki-duotone ki-eraser text-danger fs-2">
+                        <span class="path1"></span>
+                        <span class="path2"></span>
+                        <span class="path3"></span>
+                    </i>
+                    <span class="fs-2hx fw-bold text-gray-900 me-2 lh-1 ls-n2">@_items?.Sum(s => s.DeActiveNo)</span>
+                </div>
+                <span class="text-gray-500 pt-1 fw-semibold fs-6">Total Cancel</span>
+            </div>
+        </div>
+    </div>
+</div>
+@if (!IsLoading)
+{
+    <div class="row mb-6">
+        <div class="col-md-8">
+            <div class="card card-flush overflow-hidden h-md-100">
+                <div class="card-header py-5">
+                    <h3 class="card-title align-items-start flex-column">
+                        <span class="card-label fw-bold text-gray-900">Statistics Shipment</span>
+                    </h3>
+                </div>
+                <div class="card-body d-flex justify-content-between flex-column pb-1 px-0">
+                    <div id="charts_1" class="min-h-auto ps-4 pe-6" style="height: 300px"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card card-flush overflow-hidden h-md-100">
+                <div class="card-header py-5">
+                    <h3 class="card-title align-items-start flex-column">
+                        <span class="card-label fw-bold text-gray-900">Statistics Service</span>
+                    </h3>
+                </div>
+                <div class="card-body d-flex justify-content-between flex-column pb-1 px-0">
+                    <div id="charts_2" class="min-h-auto ps-4 pe-6" style="height: 300px"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <table class="table table-hover table-rounded table-striped border gy-7 gs-7" id="@UiConstants.TableId">
+                <thead>
+                <tr class="fw-semibold fs-6 text-gray-800 border-bottom-2 border-gray-200">
+                    <th>Date</th>
+                    <th>Service Code</th>
+                    <th>Total Amount</th>
+                    <th>Total Shipment</th>
+                    <th>Total Label</th>
+                    <th>Total Cancel</th>
+                </tr>
+                </thead>
+                <tbody>
+                @if (_items is { Count: > 0 })
+                {
+                    foreach (var item in _items)
+                    {
+                        <tr>
+                            <td>@item.TransDate.ToDmy()</td>
+                            <td>@item.ServiceCode</td>
+                            <td>@item.Amount.ToString("N2")</td>
+                            <td>@(item.ActiveNo + item.DeActiveNo)</td>
+                            <td>@item.GenerateLabelNo</td>
+                            <td>@item.DeActiveNo</td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@code {
+    [CascadingParameter] private UserInfo? ShareUserInfo { get; set; }
+    private UserBalanceDto? _balanceDto = new();
+
+    private GetReportRequest _request = new()
+    {
+    };
+
+    private List<SumShipmentResponse>? _items = [];
+    private bool _initChart = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        DateRange = "".InitDateRange();
+        _request.UserId = $"{ShareUserInfo?.UserId}";
+        _balanceDto = await Mediator.Send(new GetBalanceByUserQuery()
+        {
+            UserId = _request.UserId
+        });
+        await GetData();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await CallInitRangeDate();
+        }
+
+        if (_initChart)
+        {
+            _initChart = false;
+            if (_items is { Count: > 0 })
+            {
+                _items = _items.OrderBy(o => o.TransDate).ToList();
+                var tmpGroup = _items.GroupBy(g => g.TransDate).Select(s => new
+                {
+                    TransDate = s.Key,
+                    Amount = s.Sum(sm => sm.Amount).ToRound(2)
+                }).ToList();
+                var tmpGroup1 = _items.GroupBy(g => g.ServiceCode).Select(s => new
+                {
+                    Service = s.Key,
+                    Count = s.Sum(sm => sm.ActiveNo)
+                }).ToList();
+                var aData = tmpGroup.Select(s => s.Amount).ToList();
+                aData.Insert(0, 0);
+                var dataChart = new List<DataChartResponse>()
+                {
+                    new()
+                    {
+                        Data = aData
+                    }
+                };
+                var cat = tmpGroup.Select(s => s.TransDate.ToDdMmm()).ToList();
+                cat.Insert(0, "");
+                var aData1 = tmpGroup1.Select(s => s.Count).ToList();
+                var cat1 = tmpGroup1.Select(s => s.Service).ToList();
+                await CallJs("initChartLine", "charts_1", dataChart, cat);
+                await CallJs("initChartDotNut", "charts_2", aData1, cat1);
+            }
+        }
+
+        if (InitDataTable)
+        {
+            InitDataTable = false;
+            await CallInitialDataTable();
+        }
+    }
+
+    private async Task GetData()
+    {
+        _request.DateRange = DateRange;
+        IsLoading = true;
+        StateHasChanged();
+        _items = await Mediator.Send(new GetSumShipmentByUserQuery()
+        {
+            Input = _request
+        });
+        IsLoading = false;
+        InitDataTable = true;
+        _initChart = true;
+        StateHasChanged();
+    }
+
+}

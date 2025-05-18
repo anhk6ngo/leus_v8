@@ -1,0 +1,267 @@
+﻿@page "/portal/approve-top-up"
+@using Leus.Application.Features.Data.Commands
+@inject IRoleService RoleService
+@attribute [StreamRendering]
+@attribute [Authorize(Roles = RoleConstants.AccountingRole)]
+<PageTitle>Approve Top-up</PageTitle>
+<SectionContent SectionName="@NavConstants.TopLeft">
+    <Breadcrumb Slash="true"></Breadcrumb>
+    <Breadcrumb TextMuted="true">Approve Top-up</Breadcrumb>
+</SectionContent>
+<SectionContent SectionName="@NavConstants.TopRight">
+    <div class="d-flex flex-row-auto">
+        <input @bind="DateRange" class="form-control form-control-sm w-200px mx-2" placeholder="Pick date range"
+               id="RangeDate"/>
+        <button class="btn btn-sm btn-primary w-100" @onclick="GetData">Get Data</button>
+
+    </div>
+
+</SectionContent>
+
+@if (IsLoading)
+{
+    <LoadingRotate/>
+}
+<Card Title="List of TopUp">
+    <ToolbarRight>
+        <button class="btn btm-sm btn-custom align-self-center" @onclick="() => FormAction(-1, 0)">
+            <i class="fa fa-plus-square"></i>Add new
+        </button>
+    </ToolbarRight>
+    <ChildContent>
+        @if (_items == null || IsLoading)
+        {
+            <Loading/>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover table-rounded table-striped border gy-7 gs-7" id="@UiConstants.TableId">
+                    <thead>
+                    <tr class="fw-semibold fs-6 text-gray-800 border-bottom-2 border-gray-200">
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>Approve Amount</th>
+                        <th>Note</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var t in _items.WithIndex())
+                    {
+                        <tr>
+                            <td>@t.item.RequestDate.ToDmy()</td>
+                            <td>@t.item.RequestAmount?.ToString("N2") @t.item.Currency</td>
+                            <td>@t.item.ApproveAmount?.ToString("N2")</td>
+                            <td>
+                                @t.item.Note
+                                @if ($"{t.item.AccNote}".NotIsNullOrEmpty())
+                                {
+                                    <p>@t.item.AccNote</p>
+                                }
+                            </td>
+                            <td>@t.item.Status.ToTopUpStatus()</td>
+                            <MenuAction>
+                                <div class="menu-item px-3">
+                                    <a class="menu-link px-3" @onclick="@(() => FormAction(t.index, 1))">
+                                    <span class="menu-icon">
+                                        <i class="fas fa-edit text-primary"></i>    
+                                    </span> Edit
+                                    </a>
+                                </div>
+                                <div class="menu-item px-3">
+                                    <a class="menu-link px-3" @onclick="@(() => FormAction(t.index, 2))">
+                                    <span class="menu-icon">
+                                        <i class="fas fa-trash text-danger"></i>    
+                                    </span>
+                                        Delete
+                                    </a>
+                                </div>
+                            </MenuAction>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </ChildContent>
+</Card>
+<CustomModal Title="@($"{Title} Top up")" OnClickCallback="SaveData">
+    <EditForm Model="data" class="form">
+        <FluentValidationValidator @ref="_fluentValidationValidator"/>
+        <h4>@data?.Note</h4>
+        <h5>Amount: @data?.RequestAmount!.Value.ToString("N2")</h5>
+        <h5>Is Deposit: @(data?.IsDeposit == true ? "Yes" : "No")</h5>
+        <div class="row mb-7">
+            <label class="form-label required">Note</label>
+            <InputTextArea type="text" @bind-Value="@data!.AccNote" class="form-control maxlength" rows="3"
+                           maxlength="500"/>
+            <ValidationMessage For="@(() => data.AccNote)"/>
+        </div>
+        @if (iAction == 0)
+        {
+            <div class="row mb-7">
+                <label class="form-label">User</label>
+                <select class="form-select bg-light-warning" data-control="select2" data-id="config"
+                        data-dropdown-parent="#@UiConstants.GetModalNameDefault">
+                    <option value="">Select Item</option>
+                    @foreach (var iUser in SelectUsers)
+                    {
+                        <option value="@iUser.id" selected="@(iUser.id == data.UserId)">@iUser.text</option>
+                    }
+                </select>
+            </div>
+            <div class="row">
+                <div class="form-check form-switch form-check-custom form-check-warning form-check-solid me-6 mt-9">
+                    <input class="form-check-input" type="checkbox"
+                           @bind="@data.IsDeposit" id="flexSwitchShareRoom"/>
+                    <label class="form-check-label" for="flexSwitchShareRoom">
+                        Is Deposit
+                    </label>
+                </div>
+            </div>
+        }
+        <div class="row mb-7">
+            <label class="fs-6 fw-semibold form-label">Amount</label>
+            <input class="form-control numberinputmask" @bind="@data!.ApproveAmount"/>
+            <ValidationMessage For="@(() => data.ApproveAmount)"/>
+        </div>
+    </EditForm>
+</CustomModal>
+
+@code {
+    private List<CTopUpDto>? _items;
+    private CTopUpDto? data = new();
+    private int iAction { get; set; } = 0;
+    private string Title { get; set; } = "Add new";
+    private List<RoleUserDto> SelectUsers = new();
+    private FluentValidationValidator _fluentValidationValidator = default!;
+
+    private GetReportRequest _request = new()
+    {
+        Status = 1
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        DateRange = "".InitDateRange();
+        var lstRole = await RoleService.GetByAsync("", 0, $"{DisplayConstants.Full}", $"{DisplayConstants.Full}");
+        SelectUsers = lstRole.Adapt<List<RoleUserDto>>();
+        await GetData();
+        InitDataTable = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (InitDataTable)
+        {
+            InitDataTable = false;
+            await CallInitialDataTable(true);
+        }
+    }
+
+
+    private async Task FormAction(int index, int action)
+    {
+        data = new CTopUpDto();
+        if (index >= 0)
+        {
+            _items![index].Adapt(data);
+        }
+
+        iAction = action;
+        Title = action switch
+        {
+            1 => "Edit",
+            2 => "Delete",
+            _ => "Add new"
+        };
+        switch (action)
+        {
+            case 0:
+                data.UserId = SelectUsers[0].id;
+                break;
+            default:
+                data.ApproveAmount = data.RequestAmount;
+                break;
+        }
+
+        await ToggleModal();
+        await SetSelectTextNum();
+    }
+
+    [JSInvokable]
+    public void UpdateSelect2(string value, string nameControl)
+    {
+        data!.UserId = value;
+    }
+
+    private async Task SaveData()
+    {
+        switch (iAction)
+        {
+            case 0 or 2 when $"{data!.AccNote}".IsNullOrEmpty():
+                await ShowAlert("Please enter the reason", 1);
+                return;
+            case 0 when data!.ApproveAmount == 0:
+                await ShowAlert("Please enter the amount", 1);
+                return;
+        }
+
+        data!.ApproveDate = DateTime.UtcNow;
+        IsLoading = true;
+        StateHasChanged();
+        data!.Status = 2;
+        switch (iAction)
+        {
+            case 0:
+                data!.Note = data.AccNote;
+                data!.AccNote = string.Empty;
+                data.RequestAmount = data.ApproveAmount;
+                break;
+            case 2:
+                data.Status = 3;
+                break;
+        }
+
+        var result = await Mediator.Send(new AddEditTopUpCommand()
+        {
+            Request = new AddEditDataRequest<CTopUpDto>()
+            {
+                Data = data!,
+                Action = iAction == 0 ? ActionCommandType.AddApprove : ActionCommandType.Approve,
+            }
+        });
+        if (result.Succeeded)
+        {
+            if (iAction != 0)
+            {
+                _items = _items?.Where(w => w.Id != data.Id).ToList();
+            }
+        }
+
+        await ShowAlert(result.Messages[0], result.Succeeded ? 0 : 1);
+        IsLoading = false;
+        InitDataTable = true;
+        StateHasChanged();
+        await ToggleModal();
+    }
+
+    private async Task GetData()
+    {
+        _request.DateRange = DateRange;
+        IsLoading = true;
+        StateHasChanged();
+        _items = await Mediator.Send(new GetAllTopUpByUserQuery()
+        {
+            Status = 1,
+            DateRange = _request.DateRange,
+            UserId = _request.UserId
+        });
+        _items = _items.OrderByDescending(o => o.RequestDate).ToList();
+        IsLoading = false;
+        StateHasChanged();
+    }
+
+}
