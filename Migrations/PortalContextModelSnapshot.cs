@@ -320,6 +320,10 @@ namespace LeUs.Migrations
                     b.Property<DateTime>("CreatedOn")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("CustomerId")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
                     b.Property<string>("Email")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
@@ -539,6 +543,9 @@ namespace LeUs.Migrations
                     b.Property<double?>("CancelFee")
                         .HasColumnType("double precision");
 
+                    b.Property<DateTime?>("CancelLabelDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<double?>("ChargeWeight")
                         .HasColumnType("double precision");
 
@@ -577,6 +584,12 @@ namespace LeUs.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
+                    b.Property<double?>("ExcessVolumeFee")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("ExtraLongFee")
+                        .HasColumnType("double precision");
+
                     b.Property<string>("FbaCode")
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");
@@ -592,11 +605,17 @@ namespace LeUs.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsOverSize")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("LastModifiedBy")
                         .HasColumnType("character varying(255)");
 
                     b.Property<DateTime?>("LastModifiedOn")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<double?>("OverLimitFee")
+                        .HasColumnType("double precision");
 
                     b.Property<string>("PackageType")
                         .HasMaxLength(30)
@@ -677,6 +696,8 @@ namespace LeUs.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ReferenceId");
+
+                    b.HasIndex(new[] { "IsActive", "CreateLabelDate", "CancelLabelDate" }, "IX_Shipment_LabelDateIndex");
 
                     b.HasIndex(new[] { "IsActive", "CreatedOn", "CreatedBy" }, "IX_Shipment_UserIndex");
 

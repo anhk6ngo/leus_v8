@@ -114,7 +114,7 @@ public class UnitedBrideService(IOptions<ApiSetting> options, IHttpClientFactory
                 }).ToList();
             }
         }
-        catch (Exception e)
+        catch
         {
             return result;
         }

@@ -50,5 +50,10 @@ public interface IBaseShipment
     public string? TrackIds { get; set; }
     public double? Remote { get; set; }
     public double? CancelFee { get; set; }
+    public double? ExtraLongFee { get; set; }
+    public double? OverLimitFee { get; set; }
+    public double? ExcessVolumeFee { get; set; }
+    public bool IsOverSize { get; set; }
     public DateTime? CreateLabelDate { get; set; }
+    public DateTime? CancelLabelDate { get; set; }
 }

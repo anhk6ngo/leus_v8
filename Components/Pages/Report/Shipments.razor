@@ -57,14 +57,20 @@ else
                         @if (isAcc)
                         {
                             <th>Customer</th>
-                            <th>Amount</th>
                             <th>Remote</th>
+                            <th>Extra Long</th>
+                            <th>Over Limit</th>
+                            <th>Excess Volume</th>
+                            <th>Amount</th>
                             <th>Cost</th>
                         }
                         else
                         {
-                            <th>Amount</th>
                             <th>Remote</th>
+                            <th>Extra Long</th>
+                            <th>Over Limit</th>
+                            <th>Excess Volume</th>
+                            <th>Amount</th>
                         }
                         
                     </tr>
@@ -92,14 +98,20 @@ else
                             @if (isAcc)
                             {
                                 <td>@_customers.FirstOrDefault(w => w.Id.ToString() == item.CustomerId)?.Name</td>
-                                <td>@item.Price?.ToString("N2")</td>
                                 <td>@item.Remote?.ToString("N2")</td>
+                                <td>@item.ExtraLongFee?.ToString("N2")</td>
+                                <td>@item.OverLimitFee?.ToString("N2")</td>
+                                <td>@item.ExcessVolumeFee?.ToString("N2")</td>
+                                <td>@item.Price?.ToString("N2")</td>
                                 <td>@item.Cost?.ToString("N2")</td>
                             }
                             else
                             {
-                                <td>@item.Price?.ToString("N2")</td>
                                 <td>@item.Remote?.ToString("N2")</td>
+                                <td>@item.ExtraLongFee?.ToString("N2")</td>
+                                <td>@item.OverLimitFee?.ToString("N2")</td>
+                                <td>@item.ExcessVolumeFee?.ToString("N2")</td>
+                                <td>@item.Price?.ToString("N2")</td>
                             }
                         </tr>
                     }

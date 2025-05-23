@@ -22,6 +22,9 @@ public class CShipmentReport
     public string? ApiName { get; set; }
     public string? TrackIds { get; set; }
     public double? Remote { get; set; }
+    public double? ExtraLongFee { get; set; } = 0;
+    public double? OverLimitFee { get; set; } = 0;
+    public double? ExcessVolumeFee { get; set; } = 0;
     public int ZonePrice { get; set; }
     public DateTime CreatedOn { get; set; }
 }

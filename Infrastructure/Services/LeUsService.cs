@@ -25,7 +25,9 @@ public class LeUsService(
         var oHis = new List<CHistoryLabel>();
         foreach (var item in shipments)
         {
-            var dAmount = item.Price.PlusNumber(item.Remote);
+            var dAmount = item.Price.PlusNumber(item.Remote)
+                .PlusNumber(item.ExtraLongFee).PlusNumber(item.OverLimitFee)
+                .PlusNumber(item.ExcessVolumeFee);
             if (dAmount == 0)
             {
                 results.Add(new CResult<string>()
@@ -206,6 +208,7 @@ public class LeUsService(
 
                     break;
             }
+
             oHis.Add(newHis);
         }
 
@@ -237,7 +240,9 @@ public class LeUsService(
         foreach (var item in shipments)
         {
             var blnSuccess = false;
-            var dAmount = item.Price.PlusNumber(item.Remote);
+            var dAmount = item.Price.PlusNumber(item.Remote)
+                .PlusNumber(item.ExtraLongFee).PlusNumber(item.OverLimitFee)
+                .PlusNumber(item.ExcessVolumeFee);
             if (dAmount == 0)
             {
                 results.Add(new CResult<string>()
@@ -338,6 +343,7 @@ public class LeUsService(
                     });
                     break;
             }
+
             oHis.Add(newHis);
             if (!blnSuccess) continue;
             dAddAmount += dAmount;
@@ -503,7 +509,7 @@ public class LeUsService(
 
         return result;
     }
-    
+
     public async Task<int> GetZone(string from, string to)
     {
         var client = clientFactory.CreateClient("uspsZone");

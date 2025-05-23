@@ -42,6 +42,7 @@
             {
                 Email = $"{ShareUserInfo?.Email}"
             });
+            Stores = CustomerId.IsNullOrEmpty() ? Stores.Where(w => w.CustomerId.IsNullOrEmpty()).ToList() : Stores.Where(w => w.CustomerId.IsNullOrEmpty() || w.CustomerId == CustomerId).ToList();
             StateHasChanged();
             await CallJs("fixedToolbar", true);
         }

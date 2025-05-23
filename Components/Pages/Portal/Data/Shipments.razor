@@ -103,6 +103,9 @@ else
                             <th>Weight</th>
                             <th>Price</th>
                             <th>Remote</th>
+                            <th>Extra Long</th>
+                            <th>Over Limit</th>
+                            <th>Excess Volume</th>
                             <th class="text-end">Actions</th>
                         </tr>
                         </thead>
@@ -141,6 +144,9 @@ else
                                 <td>@t.item.Weight @GetUnitType(t.item.UnitType)</td>
                                 <td>@t.item.Price?.ToString("N2")</td>
                                 <td>@t.item.Remote?.ToString("N2")</td>
+                                <td>@t.item.ExtraLongFee?.ToString("N2")</td>
+                                <td>@t.item.OverLimitFee?.ToString("N2")</td>
+                                <td>@t.item.ExcessVolumeFee?.ToString("N2")</td>
                                 <td>
                                     @if (t.item.ShipmentStatus == 0)
                                     {
@@ -225,6 +231,12 @@ else
             Services = await Mediator.Send(new GetAllServiceQuery());
             Countries = await Mediator.Send(new GetAllCountryQuery());
             Stores = await Mediator.Send(new GetAllStoreAddressQuery());
+            var customerId = await Mediator.Send(new GetAllCustomerByEmailQuery()
+            {
+                Email = $"{ShareUserInfo?.Email}"
+            });
+            Stores = customerId.IsNullOrEmpty() ? Stores.Where(w => w.CustomerId.IsNullOrEmpty()).ToList() : Stores.Where(w => w.CustomerId.IsNullOrEmpty() || w.CustomerId == customerId).ToList();
+
             await GetData();
             await CallInitRangeDate();
         }

@@ -77,5 +77,6 @@ public class CShipmentConfiguration : IEntityTypeConfiguration<CShipment>
         });
         builder.HasIndex(i => i.ReferenceId);
         builder.HasIndex(u => new { u.IsActive, u.CreatedOn, u.CreatedBy }, "IX_Shipment_UserIndex");
+        builder.HasIndex(u => new { u.IsActive, u.CreateLabelDate, u.CancelLabelDate }, "IX_Shipment_LabelDateIndex");
     }
 }

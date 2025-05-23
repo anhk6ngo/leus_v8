@@ -23,6 +23,7 @@ internal class AddEditShipmentCommandHandler(
         {
             dCost = await leUsService.GetRate(command.Request.Data);
         }
+        command.Request.Data.CalOverSizeFee();
         switch (command.Request.Action)
         {
             case ActionCommandType.Add:
@@ -54,26 +55,27 @@ internal class AddEditShipmentCommandHandler(
                     oNewItem.Price = priceResponse.Price;
                     oNewItem.PriceCode = priceResponse.PriceCode;
                     oNewItem.ChargeWeight = priceResponse.ChargeWeight;
-                    
+
                     if (dCost > oNewItem.Price)
                     {
                         oNewItem.Remote = ((dCost * 1.05 - oNewItem.Price) ?? 0).ToRound(2);
                     }
+                    oNewItem.ExcessVolumeFee = priceResponse.ExcessVolumeFee;
                 }
                 else
                 {
                     oNewItem.Price = 0;
                     oNewItem.Remote = 0;
                 }
+
                 oNewItem.ServiceCode1 = priceResponse.ServiceCode;
                 oNewItem.ApiName1 = priceResponse.ApiName;
                 var sNo = $"{DateTime.Now.ToUtc():MMyy}";
-                var rnd = new Random();
                 do
                 {
-                    var rndNo = $"{sNo}{rnd.Next(10000, 99999)}";
+                    var rndNo = $"{sNo}{SharedExtension.Extensions.GenerateRandomNumber(100000, 999999999)}";
                     if (await unitOfWork.RepositoryNew<CShipment>().Entities
-                            .AnyAsync(w => w.ReferenceId == sNo, cancellationToken)) continue;
+                            .AnyAsync(w => w.ReferenceId == rndNo, cancellationToken)) continue;
                     oNewItem.ReferenceId = rndNo;
                     break;
                 } while (true);
@@ -87,13 +89,16 @@ internal class AddEditShipmentCommandHandler(
                     .GetByIdAsync(command.Request.Data!.Id);
                 if (currentItem != null)
                 {
-                    if (currentItem.ShipmentStatus == 2)
+                    if (currentItem.ShipmentStatus >= 2)
                     {
-                        return await Result<AddEditShipmentResponse>.FailAsync("The shipment have label. You cannot edit this shipment.");
+                        return await Result<AddEditShipmentResponse>.FailAsync(
+                            "The shipment have label. You cannot edit this shipment.");
                     }
+
                     command.Request.Data.ReferenceId = currentItem.ReferenceId;
                     if ($"{currentItem.Shipper?.Zip}" != $"{command.Request.Data.Shipper?.Zip}" ||
-                        $"{currentItem.Consignee?.Zip}" != $"{command.Request.Data.Consignee?.Zip}" || command.Request.Data.ZonePrice == 0)
+                        $"{currentItem.Consignee?.Zip}" != $"{command.Request.Data.Consignee?.Zip}" ||
+                        command.Request.Data.ZonePrice == 0)
                     {
                         command.Request.Data.ZonePrice =
                             await leUsService.GetZone($"{command.Request.Data.Shipper?.Zip}",
@@ -120,6 +125,7 @@ internal class AddEditShipmentCommandHandler(
                     currentItem.Price = priceResponse.Price;
                     currentItem.PriceCode = priceResponse.PriceCode;
                     currentItem.ChargeWeight = priceResponse.ChargeWeight;
+                    currentItem.ExcessVolumeFee = priceResponse.ExcessVolumeFee;
                     currentItem.ServiceCode1 = priceResponse.ServiceCode;
                     currentItem.ApiName1 = priceResponse.ApiName;
                     if (currentItem is { ChargeWeight: > 0, Price: > 0 })
@@ -137,12 +143,13 @@ internal class AddEditShipmentCommandHandler(
                     {
                         currentItem.Remote = 0;
                     }
-                    
+
                     await unitOfWork.RepositoryNew<CShipment>().UpdateAsync(currentItem);
                     await unitOfWork.Commit(cancellationToken);
                     currentItem.Adapt(response);
                     return await Result<AddEditShipmentResponse>.SuccessAsync(response, "The item updated");
                 }
+
                 break;
         }
 

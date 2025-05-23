@@ -7,6 +7,7 @@ using Leus.Application.Features.Data.Queries;
 using LeUs.Application.Features.Data.Queries;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 
 namespace LeUs.Controllers;
@@ -133,9 +134,9 @@ public class ShipmentController(
     }
 
     [HttpPost]
-    [ProducesResponseType<Result<Guid>>(StatusCodes.Status200OK, "application/json")]
+    [ProducesResponseType<Result<AddEditShipmentResponse>>(StatusCodes.Status200OK, "application/json")]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
-    [EndpointSummary("Create new Shipment")]
+    [EndpointSummary("1. Create new Shipment")]
     public async Task<IHttpResult> Post(ShipmentDto request)
     {
         var dConvert = new CShipmentDto();
@@ -191,9 +192,9 @@ public class ShipmentController(
     }
 
     [HttpPut]
-    [ProducesResponseType<Result<Guid>>(StatusCodes.Status200OK, "application/json")]
+    [ProducesResponseType<Result<AddEditShipmentResponse>>(StatusCodes.Status200OK, "application/json")]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
-    [EndpointSummary("Update Shipment")]
+    [EndpointSummary("2. Update Shipment")]
     public async Task<IHttpResult> Put(ShipmentDto request)
     {
         var dConvert = new CShipmentDto();
@@ -248,26 +249,18 @@ public class ShipmentController(
         return Results.Problem(problemDetails);
     }
 
-    [HttpPost("get-label")]
-    [ProducesResponseType<DownloadFileContent>(StatusCodes.Status200OK, "application/json")]
-    [EndpointSummary("Get Labels")]
-    public async Task<IActionResult> GetLabel(List<string> request)
+    [HttpDelete("{id}")]
+    [EndpointSummary("3. Delete Shipment")]
+    [ProducesResponseType<Result<Guid>>(StatusCodes.Status200OK, "application/json")]
+    public async Task<IActionResult> Delete(Guid id)
     {
-        return Ok(await leUsService.GetLabel(request, User.GetUserId()));
-    }
-
-    [HttpDelete("cancel-label")]
-    [ProducesResponseType<DownloadFileContent>(StatusCodes.Status200OK, "application/json")]
-    [EndpointSummary("Cancel Labels")]
-    public async Task<IActionResult> CancelLabel([FromBody] List<string> request)
-    {
-        return Ok(await leUsService.CancelShipment(request, User.GetUserId()));
+        return Ok(await _mediator!.Send(new DeleteShipmentCommand { Id = id }));
     }
 
     [HttpPost("generate-label")]
     [ProducesResponseType<List<CResult<string>>>(StatusCodes.Status200OK, "application/json")]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
-    [EndpointSummary("Generate Labels")]
+    [EndpointSummary("4. Generate Labels. Input is list of referenceId that return when you create a shipment")]
     public async Task<IHttpResult> GenerateLabel(List<string> request)
     {
         if (request is { Count: 0 })
@@ -307,11 +300,29 @@ public class ShipmentController(
         return Results.Ok(result);
     }
 
-    [HttpDelete("{id}")]
-    [EndpointSummary("Delete Shipment")]
-    public async Task<IActionResult> Delete(Guid id)
+    [HttpPost("get-label")]
+    [ProducesResponseType<DownloadFileContent>(StatusCodes.Status200OK, "application/json")]
+    [EndpointSummary("5. Get Labels. Input is list of referenceId that return when you create a shipment. Result return is pdf or zip file")]
+    public async Task<IActionResult> GetLabel(List<string> request)
     {
-        return Ok(await _mediator!.Send(new DeleteShipmentCommand { Id = id }));
+        return Ok(await leUsService.GetLabel(request, User.GetUserId()));
+    }
+
+    [HttpDelete("cancel-label")]
+    [ProducesResponseType<List<CResult<string>>>(StatusCodes.Status200OK, "application/json")]
+    [EndpointSummary("6. Cancel Labels. Input is list of referenceId that return when you create a shipment")]
+    public async Task<IActionResult> CancelLabel([FromBody] List<string> request)
+    {
+        return Ok(await leUsService.CancelShipment(request, User.GetUserId()));
+    }
+
+    [HttpGet("track/{refId}")]
+    [ProducesResponseType<CTrackingResponse>(StatusCodes.Status200OK, "application/json")]
+    [EndpointSummary("7. Tracking Shipment. The tracking result will be not real time. Input is referenceId that return when you create a shipment")]
+    public async Task<IActionResult> GetTrack(string? refId)
+    {
+        var data = await leUsService.GetTrack([$"{refId}"], User.GetUserId());
+        return Ok(data);
     }
 
     [HttpGet("stores")]
@@ -320,17 +331,14 @@ public class ShipmentController(
     public async Task<IActionResult> GetStore()
     {
         var data = await _mediator!.Send(new GetAllStoreAddressQuery());
+        var cusId = await _mediator.Send(new GetAllCustomerByEmailQuery()
+        {
+            Email = User.GetEmail()
+        });
+        data = cusId.IsNullOrEmpty() ? data.Where(w => w.CustomerId.IsNullOrEmpty()).ToList() : data.Where(w => w.CustomerId.IsNullOrEmpty() || w.CustomerId == cusId).ToList();
         return Ok(data);
     }
 
-    [HttpGet("track/{refId}")]
-    [ProducesResponseType<CTrackingResponse>(StatusCodes.Status200OK, "application/json")]
-    [EndpointSummary("Tracking Shipment. The tracking result will be not real time.")]
-    public async Task<IActionResult> GetTrack(string? refId)
-    {
-        var data = await leUsService.GetTrack([$"{refId}"], User.GetUserId());
-        return Ok(data);
-    }
     [HttpGet("balance")]
     [ProducesResponseType<UserBalanceDto>(StatusCodes.Status200OK, "application/json")]
     [EndpointSummary("Get Balance")]
@@ -340,6 +348,7 @@ public class ShipmentController(
         {
             UserId = User.GetUserId()
         });
+        
         return Ok(balance);
     }
 }

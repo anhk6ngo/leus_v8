@@ -288,10 +288,18 @@ public class ExcelService(
             ws.Cells[$"R{iRow}"].Value = "Customer";
             ws.Cells[$"S{iRow}"].Value = "Price";
             ws.Cells[$"T{iRow}"].Value = "Cost";
+            ws.Cells[$"U{iRow}"].Value = "Remote";
+            ws.Cells[$"V{iRow}"].Value = "Extra Long";
+            ws.Cells[$"W{iRow}"].Value = "Over Limit";
+            ws.Cells[$"X{iRow}"].Value = "Excess Volume";
         }
         else
         {
             ws.Cells[$"R{iRow}"].Value = "Price";
+            ws.Cells[$"S{iRow}"].Value = "Remote";
+            ws.Cells[$"T{iRow}"].Value = "Extra Long";
+            ws.Cells[$"U{iRow}"].Value = "Over Limit";
+            ws.Cells[$"V{iRow}"].Value = "Excess Volume";
         }
 
         iRow = 2;
@@ -328,10 +336,22 @@ public class ExcelService(
             rng.Value = item.TrackIds;
             if (isAcc)
             {
-                ws.Cells[$"O{iRow}"].Value = customers.FirstOrDefault(w => w.Id.ToString() == item.CustomerId)?.Name;
-                ws.Cells[$"S{iRow}"].Value = item.Cost;
+                ws.Cells[$"R{iRow}"].Value = customers.FirstOrDefault(w => w.Id.ToString() == item.CustomerId)?.Name;
+                ws.Cells[$"S{iRow}"].Value = item.Price ?? 0;
+                ws.Cells[$"T{iRow}"].Value = item.Cost ?? 0;
+                ws.Cells[$"U{iRow}"].Value = item.Remote ?? 0;
+                ws.Cells[$"V{iRow}"].Value = item.ExtraLongFee ?? 0;
+                ws.Cells[$"W{iRow}"].Value = item.OverLimitFee ?? 0;
+                ws.Cells[$"X{iRow}"].Value = item.ExcessVolumeFee ?? 0;
             }
-            ws.Cells[$"R{iRow}"].Value = item.Price;
+            else
+            {
+                ws.Cells[$"R{iRow}"].Value = item.Price ?? 0;
+                ws.Cells[$"S{iRow}"].Value = item.Remote ?? 0;
+                ws.Cells[$"T{iRow}"].Value = item.ExtraLongFee ?? 0;
+                ws.Cells[$"U{iRow}"].Value = item.OverLimitFee ?? 0;
+                ws.Cells[$"V{iRow}"].Value = item.ExcessVolumeFee ?? 0;
+            }
 
             iRow++;
         }

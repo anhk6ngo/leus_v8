@@ -45,8 +45,13 @@ public class CShipmentDto : AggregateRoot<Guid>, IShipment
     public int UnitType { get; set; }
     public string? TrackIds { get; set; }
     public double? Remote { get; set; } = 0;
-    public double? CancelFee { get; set; }
+    public double? CancelFee { get; set; } = 0;
+    public double? ExtraLongFee { get; set; } = 0;
+    public double? OverLimitFee { get; set; } = 0;
+    public double? ExcessVolumeFee { get; set; } = 0;
+    public bool IsOverSize { get; set; }
     public DateTime? CreateLabelDate { get; set; }
+    public DateTime? CancelLabelDate { get; set; }
     public int ZonePrice { get; set; } = 0;
     [NotMapped] public DateTime CreatedOn { get; set; }
     [NotMapped] public DateTime ShippedOn { get; set; }
@@ -70,5 +75,28 @@ public class CShipmentDto : AggregateRoot<Guid>, IShipment
     public double CalculateVolumeWeight()
     {
         return Boxes?.Sum(s => s.Height * s.Length * s.Width) ?? 0;
+    }
+
+    public void CalOverSizeFee()
+    {
+        if (Boxes is { Count: 0 }) return;
+        foreach (var box in Boxes!)
+        {
+            List<double> aDim = [box.Height, box.Width, box.Length];
+            aDim = aDim.Order().ToList();
+            var dTotal = (aDim[0] + aDim[1]) * 2 + aDim[2];
+            if (dTotal > 108)
+            {
+                IsOverSize = true;
+            }
+            if (aDim.Any(w => w > 30))
+            {
+                OverLimitFee = 9;
+            }
+            else if (aDim.Any(w => w > 22))
+            {
+                ExtraLongFee = 5;
+            }
+        }
     }
 }

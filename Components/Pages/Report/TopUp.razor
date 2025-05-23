@@ -55,7 +55,7 @@
                     @foreach (var item in _items)
                     {
                         <tr>
-                            <td>@item.ApproveDate.ToDmy()</td>
+                            <td>@item.ApproveDate</td>
                             <td>@item.ApproveAmount?.ToString("N2")</td>
                             <td>
                                 @if (item.IsDeposit)
@@ -111,7 +111,7 @@
         if (InitDataTable)
         {
             InitDataTable = false;
-            await CallInitialDataTable(true);
+            await CallInitialDataTableNoOrder(UiConstants.TableId);
         }
     }
 

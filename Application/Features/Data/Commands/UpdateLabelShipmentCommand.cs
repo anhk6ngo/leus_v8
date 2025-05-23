@@ -31,14 +31,10 @@ internal class UpdateLabelShipmentCommandHandler(IUnitOfWork<Guid, PortalContext
                 {
                     var oFind = command.Data.FirstOrDefault(x => x.Id == item.Id);
                     if (oFind == null) continue;
-                    if (item.CreateLabelDate != null)
-                    {
-                        item.CreateLabelDate = DateTime.UtcNow;
-                    }
-
                     if (command.Action == ActionCommandType.Edit)
                     {
                         item.ShipmentId = oFind.ShipmentId;
+                        item.CreateLabelDate = DateTime.UtcNow;
                         item.ShipmentStatus = 2;
                         item.Cost = oFind.Cost;
                         if (oFind.Labels is { Count: > 0 })
@@ -60,9 +56,10 @@ internal class UpdateLabelShipmentCommandHandler(IUnitOfWork<Guid, PortalContext
             case ActionCommandType.Delete:
                 foreach (var item in command.Data)
                 {
-                    item.Price = 0;
-                    item.Remote = 0;
+                    //item.Price = 0;
+                    //item.Remote = 0;
                     item.ShipmentStatus = 3;
+                    item.CancelLabelDate = DateTime.UtcNow;
                     await unitOfWork.RepositoryNew<CShipment>().UpdateAsync(item);
                 }
                 await unitOfWork.Commit(cancellationToken);

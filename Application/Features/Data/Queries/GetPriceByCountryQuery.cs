@@ -60,10 +60,16 @@ internal class GetPriceByCountryQueryHandler(IMediator mediator)
 
         dChargeWeight = dChargeWeight.ToRound(2);
         dCubitWeight = dCubitWeight.ToRound(2);
-        if (dCubitWeight < 1 && blnCubic)
+        switch (dCubitWeight)
         {
-            dChargeWeight = request.Data.NetWeight.ToRound(2);
+            case < 1 when blnCubic:
+                dChargeWeight = request.Data.NetWeight.ToRound(2);
+                break;
+            case > 2:
+                result.ExcessVolumeFee = 19;
+                break;
         }
+
         var blnHasCubit = price.MaxCubic > 0 && dCubitWeight <= price.MaxCubic;
 
         var oPriceDetails = price.Details?.Where(w =>

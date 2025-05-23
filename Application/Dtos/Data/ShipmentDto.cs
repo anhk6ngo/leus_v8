@@ -109,8 +109,17 @@ public class ShipmentDto : AggregateRoot<Guid>, IBaseShipment
     public int UnitType { get; set; } = 0;
 
     public string? TrackIds { get; set; }
-    public double? Remote { get; set; }
-    [Description("Cancel Fee")]
-    public double? CancelFee { get; set; }
+    [Description("Remote Fee")]
+    public double? Remote { get; set; } = 0;
+    [Description("Cancel Fee")] public double? CancelFee { get; set; } = 0;
+
+    [Description("Extra long Fee")] public double? ExtraLongFee { get; set; } = 0;
+
+    [Description("Over Limit Fee")] public double? OverLimitFee { get; set; } = 0;
+    [Description("Excess Volume Fee")] public double? ExcessVolumeFee { get; set; } = 0;
+    [Description("Indicate the shipment is over size")]
+    public bool IsOverSize { get; set; }
+
     public DateTime? CreateLabelDate { get; set; }
+    public DateTime? CancelLabelDate { get; set; }
 }

@@ -20,4 +20,5 @@ public class CStoreAddressDto: AggregateRoot<Guid>, IBaseAddress
     public string? TaxNoIssuerCountryCode { get; set; }
     public string? ServiceCode { get; set; }
     public string? EntryPoint { get; set; } = "LAX";
+    public string? CustomerId { get; set; }
 }

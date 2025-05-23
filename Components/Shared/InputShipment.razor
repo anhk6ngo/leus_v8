@@ -45,7 +45,7 @@
                                 foreach (var item in LService)
                                 {
                                     <option value="@item.ServiceCode"
-                                            selected="@(item.ServiceCode == Data.ServiceCode)">@item.ServiceName</option>
+                                            selected="@(item.ServiceCode == Data.ServiceCode)">@item.ServiceCode @item.ServiceName</option>
                                 }
                             }
                         </select>

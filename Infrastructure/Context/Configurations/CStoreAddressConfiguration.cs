@@ -21,6 +21,7 @@ public class CStoreAddressConfiguration : IEntityTypeConfiguration<CStoreAddress
         builder.Property(p => p.TaxNo).HasMaxLength(50);
         builder.Property(p => p.TaxNoType).HasMaxLength(50);
         builder.Property(p => p.TaxNoIssuerCountryCode).HasMaxLength(50);
+        builder.Property(p => p.CustomerId).HasMaxLength(36);
         builder.Property(p => p.ServiceCode).HasMaxLength(255);
     }
 }

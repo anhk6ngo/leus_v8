@@ -48,7 +48,12 @@ public class CShipment : AuditableEntityNew<Guid>, IShipment, ICStoreLabel
     public double? Cost { get; set; }
     public double? Remote { get; set; }
     public double? CancelFee { get; set; }
+    public double? ExtraLongFee { get; set; }
+    public double? OverLimitFee { get; set; }
+    public double? ExcessVolumeFee { get; set; }
+    public bool IsOverSize { get; set; }
     public DateTime? CreateLabelDate { get; set; }
+    public DateTime? CancelLabelDate { get; set; }
     public double? ChargeWeight { get; set; }
     public int ShipmentStatus { get; set; }
 }

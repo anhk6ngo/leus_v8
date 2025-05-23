@@ -64,7 +64,7 @@
         <FluentValidationValidator @ref="_fluentValidationValidator"/>
         <InputAddress Data="_baseData" LCountry="Countries" ForAddress="Store Address" IsStore="true"/>
         <div class="row mb-6">
-            <div class="col-md-9">
+            <div class="col-md-3">
                 <label class="form-label">Service Code</label>
                 <InputText type="text" @bind-Value="@data!.ServiceCode" class="form-control maxlength"
                            maxlength="255"/>
@@ -73,6 +73,19 @@
                 <label class="form-label">Entry Point</label>
                 <InputText type="text" @bind-Value="@data!.EntryPoint" class="form-control maxlength"
                            maxlength="10"/>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Customer</label>
+                <select class="form-select" data-control="select2" data-id="customer">
+                    <option value="">Select Item</option>
+                    @if (_customers is { Count: > 0 })
+                    {
+                        foreach (var item in _customers)
+                        {
+                            <option value="@item.Id" selected="@($"{item.Id}" == data.CustomerId)">@item.Code @item.Name</option>
+                        }
+                    }
+                </select>
             </div>
         </div>
         
@@ -88,11 +101,13 @@
     private string Title { get; set; } = "Add new";
     private FluentValidationValidator _fluentValidationValidator = default!;
     private bool Refresh { get; set; }
+    private List<CCustomerDto>? _customers = [];
 
     protected override async Task OnInitializedAsync()
     {
         Countries = await Mediator.Send(new GetAllCountryQuery());
         _items = await Mediator.Send(new GetAllStoreAddressQuery());
+        _customers = await Mediator.Send(new GetAllCustomerQuery());
         InitDataTable = true;
     }
 
@@ -114,8 +129,16 @@
     [JSInvokable]
     public void UpdateSelect2(string value, string controlId)
     {
-        data!.CountryCode = value;
-        data.County = Countries.Find(w => w.CountryCode == value)?.CountryName;
+        if (controlId == "customer")
+        {
+            data!.CustomerId = value;
+        }
+        else
+        {
+            data!.CountryCode = value;
+            data.County = Countries.Find(w => w.CountryCode == value)?.CountryName;
+        }
+        
     }
 
 

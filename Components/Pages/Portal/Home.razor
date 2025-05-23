@@ -1,4 +1,5 @@
 ﻿@page "/portal"
+@using Leus.Application.Features.Catalog.Queries
 @using LeUs.Application.Features.Data.Queries
 @* @rendermode @(new InteractiveServerRenderMode(prerender:false)) *@
 <SectionContent SectionName="@NavConstants.TopLeft">
@@ -18,87 +19,107 @@
     <LoadingRotate/>
 }
 <div class="row g-5 gx-xl-10 mb-5 mb-xl-10 bg-light-primary">
-    <div class="col-12 col-md-6 col-xxl d-flex">
-        <div class="card flex-fill">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <span class="fs-4 fw-semibold text-gray-500 me-1 align-self-start">$</span>
-                    <span
-                        class="fs-2hx fw-bold text-gray-900 me-2 lh-1 ls-n2">@_balanceDto?.Amount.ToString("N2")</span>
+    <div class="row my-3">
+        <div class="col-12 col-md-6 col-xxl d-flex">
+            <div class="card flex-fill">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <span class="fs-4 fw-semibold text-gray-500 me-1 align-self-start">$</span>
+                        <span
+                            class="fs-2hx fw-bold text-gray-900 me-2 lh-1 ls-n2">@_balanceDto?.Amount.ToString("N2")</span>
+                    </div>
+                    <span class="text-gray-500 pt-1 fw-semibold fs-6">Balance</span>
                 </div>
-                <span class="text-gray-500 pt-1 fw-semibold fs-6">Balance</span>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xxl d-flex">
+            <div class="card flex-fill">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <span class="fs-4 fw-semibold text-gray-500 me-1 align-self-start">$</span>
+                        <span
+                            class="fs-2hx fw-bold text-gray-900 me-2 lh-1 ls-n2">@_balanceDto?.DepositAmount.ToString("N2")</span>
+                    </div>
+                    <span class="text-gray-500 pt-1 fw-semibold fs-6">Deposit</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xxl d-flex">
+            <div class="card flex-fill">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <span class="fs-4 fw-semibold text-gray-500 me-1 align-self-start">$</span>
+                        <span
+                            class="fs-2hx fw-bold text-gray-900 me-2 lh-1 ls-n2">@_items?.Where(w => w.Status == 2).Sum(s => s.TotalAmount).ToString("N2")</span>
+                    </div>
+                    <span class="text-gray-500 pt-1 fw-semibold fs-6">Total Amount</span>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-12 col-md-6 col-xxl d-flex">
-        <div class="card flex-fill">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <span class="fs-4 fw-semibold text-gray-500 me-1 align-self-start">$</span>
-                    <span
-                        class="fs-2hx fw-bold text-gray-900 me-2 lh-1 ls-n2">@_balanceDto?.DepositAmount.ToString("N2")</span>
+    <div class="row my-3">
+        <div class="col-12 col-md-6 col-xxl d-flex">
+            <div class="card flex-fill">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <i class="me-1 align-self-start ki-duotone ki-abstract-29 text-info fs-2">
+                            <span class="path1"></span>
+                            <span class="path2"></span>
+                        </i>
+                        <span
+                            class="fs-2hx fw-bold text-gray-900 me-2 lh-1 ls-n2">@_items?.Sum(s => s.ActiveNo + s.DeActiveNo)</span>
+                    </div>
+                    <span class="text-gray-500 pt-1 fw-semibold fs-6">Shipments</span>
                 </div>
-                <span class="text-gray-500 pt-1 fw-semibold fs-6">Deposit</span>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xxl d-flex">
+            <div class="card flex-fill">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <i class="me-1 align-self-start ki-duotone ki-abstract-29 text-info fs-2">
+                            <span class="path1"></span>
+                            <span class="path2"></span>
+                        </i>
+                        <span
+                            class="fs-2hx fw-bold text-gray-900 me-2 lh-1 ls-n2">@_items?.Where(w => w.Status == 0).Sum(s => s.ActiveNo)</span>
+                    </div>
+                    <span class="text-gray-500 pt-1 fw-semibold fs-6">No Labels</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xxl d-flex">
+            <div class="card flex-fill">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <i class="me-1 align-self-start ki-duotone ki-abstract-29 text-info fs-2">
+                            <span class="path1"></span>
+                            <span class="path2"></span>
+                        </i>
+                        <span
+                            class="fs-2hx fw-bold text-gray-900 me-2 lh-1 ls-n2">@_items?.Sum(s => s.GenerateLabelNo)</span>
+                    </div>
+                    <span class="text-gray-500 pt-1 fw-semibold fs-6">Labels</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xxl d-flex">
+            <div class="card flex-fill">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <i class="me-1 align-self-start ki-duotone ki-eraser text-danger fs-2">
+                            <span class="path1"></span>
+                            <span class="path2"></span>
+                            <span class="path3"></span>
+                        </i>
+                        <span class="fs-2hx fw-bold text-gray-900 me-2 lh-1 ls-n2">@_items?.Sum(s => s.CancelLabelNo)</span>
+                    </div>
+                    <span class="text-gray-500 pt-1 fw-semibold fs-6">Cancel Labels</span>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-12 col-md-6 col-xxl d-flex">
-        <div class="card flex-fill">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <span class="fs-4 fw-semibold text-gray-500 me-1 align-self-start">$</span>
-                    <span
-                        class="fs-2hx fw-bold text-gray-900 me-2 lh-1 ls-n2">@_items?.Sum(s => s.Amount).ToString("N2")</span>
-                </div>
-                <span class="text-gray-500 pt-1 fw-semibold fs-6">Total Amount</span>
-            </div>
-        </div>
-    </div>
-    <div class="col-12 col-md-6 col-xxl d-flex">
-        <div class="card flex-fill">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <i class="me-1 align-self-start ki-duotone ki-abstract-29 text-info fs-2">
-                        <span class="path1"></span>
-                        <span class="path2"></span>
-                    </i>
-                    <span
-                        class="fs-2hx fw-bold text-gray-900 me-2 lh-1 ls-n2">@_items?.Sum(s => s.ActiveNo + s.DeActiveNo)</span>
-                </div>
-                <span class="text-gray-500 pt-1 fw-semibold fs-6">Total Shipment</span>
-            </div>
-        </div>
-    </div>
-    <div class="col-12 col-md-6 col-xxl d-flex">
-        <div class="card flex-fill">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <i class="me-1 align-self-start ki-duotone ki-abstract-29 text-info fs-2">
-                        <span class="path1"></span>
-                        <span class="path2"></span>
-                    </i>
-                    <span
-                        class="fs-2hx fw-bold text-gray-900 me-2 lh-1 ls-n2">@_items?.Sum(s => s.GenerateLabelNo)</span>
-                </div>
-                <span class="text-gray-500 pt-1 fw-semibold fs-6">Total Label</span>
-            </div>
-        </div>
-    </div>
-    <div class="col-12 col-md-6 col-xxl d-flex d-none d-xxl-flex">
-        <div class="card flex-fill">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <i class="me-1 align-self-start ki-duotone ki-eraser text-danger fs-2">
-                        <span class="path1"></span>
-                        <span class="path2"></span>
-                        <span class="path3"></span>
-                    </i>
-                    <span class="fs-2hx fw-bold text-gray-900 me-2 lh-1 ls-n2">@_items?.Sum(s => s.DeActiveNo)</span>
-                </div>
-                <span class="text-gray-500 pt-1 fw-semibold fs-6">Total Cancel</span>
-            </div>
-        </div>
-    </div>
+    
 </div>
 @if (!IsLoading)
 {
@@ -134,11 +155,17 @@
                 <thead>
                 <tr class="fw-semibold fs-6 text-gray-800 border-bottom-2 border-gray-200">
                     <th>Date</th>
+                    @if (isAcc)
+                    {
+                        <th class="min-w-200px">Agent</th>
+                    }
                     <th>Service Code</th>
                     <th>Total Amount</th>
-                    <th>Total Shipment</th>
-                    <th>Total Label</th>
-                    <th>Total Cancel</th>
+                    <th>Other Amount</th>
+                    <th>Shipments</th>
+                    <th>Cancel Shipments</th>
+                    <th>Labels</th>
+                    <th>Cancel Labels</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -148,11 +175,17 @@
                     {
                         <tr>
                             <td>@item.TransDate.ToDmy()</td>
+                            @if (isAcc)
+                            {
+                                <td>@_customers.FirstOrDefault(w => w.Id.ToString() == item.CustomerId)?.Name</td>
+                            }
                             <td>@item.ServiceCode</td>
-                            <td>@item.Amount.ToString("N2")</td>
+                            <td>@((item.Amount * (item.Status == 3 ? 0 : 1)).ToString("N2"))</td>
+                            <td>@(((item.TotalAmount - item.Amount) * (item.Status == 3 ? 0 : 1)).ToString("N2"))</td>
                             <td>@(item.ActiveNo + item.DeActiveNo)</td>
+                            <td>@(item.DeActiveNo)</td>
                             <td>@item.GenerateLabelNo</td>
-                            <td>@item.DeActiveNo</td>
+                            <td>@item.CancelLabelNo</td>
                         </tr>
                     }
                 }
@@ -164,7 +197,9 @@
 
 @code {
     [CascadingParameter] private UserInfo? ShareUserInfo { get; set; }
+    private List<CCustomerDto> _customers = [];
     private UserBalanceDto? _balanceDto = new();
+    private bool isAcc = false;
 
     private GetReportRequest _request = new()
     {
@@ -177,6 +212,16 @@
     {
         DateRange = "".InitDateRange();
         _request.UserId = $"{ShareUserInfo?.UserId}";
+        if (ShareUserInfo?.Role is { Count: > 0 })
+        {
+            if (ShareUserInfo.Role.Contains(RoleConstants.AccountingRole))
+            {
+                _request.UserId = string.Empty;
+                isAcc = true;
+                _customers = await Mediator.Send(new GetAllCustomerQuery());
+            }
+        }
+
         _balanceDto = await Mediator.Send(new GetBalanceByUserQuery()
         {
             UserId = _request.UserId
@@ -200,7 +245,7 @@
                 var tmpGroup = _items.GroupBy(g => g.TransDate).Select(s => new
                 {
                     TransDate = s.Key,
-                    Amount = s.Sum(sm => sm.Amount).ToRound(2)
+                    Amount = s.Sum(sm => sm.TotalAmount).ToRound(2)
                 }).ToList();
                 var tmpGroup1 = _items.GroupBy(g => g.ServiceCode).Select(s => new
                 {

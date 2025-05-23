@@ -20,4 +20,5 @@ public class CStoreAddress: AuditableEntityNew<Guid>, IBaseAddress
     public string? TaxNoIssuerCountryCode { get; set; }
     public string? ServiceCode { get; set; }
     public string? EntryPoint { get; set; }
+    public string? CustomerId { get; set; }
 }

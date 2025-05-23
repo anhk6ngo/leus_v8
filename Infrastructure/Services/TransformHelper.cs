@@ -12,7 +12,7 @@ public static class TransformHelper
             metadata = new UMetaData()
             {
                 reference1 = item.ReferenceId,
-                reference2 = item.ReferenceId2,
+                reference2 = $"{item.ReferenceId2} {item.ReferenceId3}".Trim(),
             },
             sender = new UAddress()
             {
@@ -87,8 +87,8 @@ public static class TransformHelper
 
         var result = new DhlLabelRequest()
         {
-            Reference1 = item.ReferenceId2,
-            Reference2 = item.ReferenceId3,
+            Reference1 = item.ReferenceId,
+            Reference2 = $"{item.ReferenceId2} {item.ReferenceId3}".Trim(),
             FromAddress = new Address()
             {
                 CompanyName = item.Shipper?.Company,
