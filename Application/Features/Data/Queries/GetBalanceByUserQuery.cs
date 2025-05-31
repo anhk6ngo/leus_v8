@@ -1,4 +1,7 @@
-﻿namespace LeUs.Application.Features.Data.Queries;
+﻿using Dapper;
+using Npgsql;
+
+namespace LeUs.Application.Features.Data.Queries;
 
 public class GetBalanceByUserQuery : IRequest<UserBalanceDto?>
 {

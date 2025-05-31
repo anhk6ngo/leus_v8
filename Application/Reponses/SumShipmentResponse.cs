@@ -7,8 +7,10 @@ public class SumShipmentResponse
     public int CancelLabelNo { get; set; }
     public int DeActiveNo { get; set; }
     public double Amount { get; set; }
+    public double Cost { get; set; }
     public string? CustomerId { get; set; }
     public double TotalAmount => Amount + Remote + ExtraLong + OverLimit + ExcessVolume;
+    public double Profit => Amount + Remote + ExtraLong + OverLimit + ExcessVolume - Cost;
     public double Remote { get; set; }
     public double ExtraLong { get; set; }
     public double OverLimit { get; set; }

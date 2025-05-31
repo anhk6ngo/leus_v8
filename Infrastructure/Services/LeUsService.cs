@@ -28,7 +28,7 @@ public class LeUsService(
             var dAmount = item.Price.PlusNumber(item.Remote)
                 .PlusNumber(item.ExtraLongFee).PlusNumber(item.OverLimitFee)
                 .PlusNumber(item.ExcessVolumeFee);
-            if (dAmount == 0)
+            if ((item.Price ?? 0) == 0)
             {
                 results.Add(new CResult<string>()
                 {
@@ -66,7 +66,7 @@ public class LeUsService(
                     ErrorMessage = "Balance is insufficient. Please top-up and try again",
                     RequestId = item.ReferenceId
                 });
-                return results;
+                break;
             }
 
             var newHis = new CHistoryLabel()
@@ -222,6 +222,238 @@ public class LeUsService(
         }
 
         return results;
+    }
+
+    public async Task<CResult<DownloadFileContent>> CreateShipment(CShipmentDto item, List<CServiceDto> services,
+        string? userId)
+    {
+        var result = new CResult<DownloadFileContent>()
+        {
+            RequestId = item.ReferenceId
+        };
+        var oUps = new List<CShipment>();
+        var oHis = new List<CHistoryLabel>();
+        var dAmount = item.Price.PlusNumber(item.Remote)
+            .PlusNumber(item.ExtraLongFee).PlusNumber(item.OverLimitFee)
+            .PlusNumber(item.ExcessVolumeFee);
+        if ((item.Price ?? 0) == 0)
+        {
+            result.Success = false;
+            result.ErrorMessage = "The shipment don't have price";
+            return result;
+        }
+
+        var oSer = services.FirstOrDefault(x => x.ServiceCode == item.ServiceCode1);
+        if (oSer == null)
+        {
+            result.Success = false;
+            result.ErrorMessage = "Service not found";
+            return result;
+        }
+
+        var rqBalance = new BalanceRequest()
+        {
+            UserId = userId,
+            Amount = dAmount,
+            Action = ActionCommandType.GetData
+        };
+        var blnCheck = await FuncBalance(rqBalance);
+        if (!blnCheck)
+        {
+            result.Success = false;
+            result.ErrorMessage = "Balance is insufficient. Please top-up and try again";
+            return result;
+        }
+
+        var newHis = new CHistoryLabel()
+        {
+            ReferenceId = item.ReferenceId,
+            Request = item.ConvertObjectToString()
+        };
+        var sTrackingId = "";
+        switch (oSer.ApiName)
+        {
+            case ApiName.Gps:
+                var rqG = item.Adapt<GpsCreateShipmentRequest>();
+                var resG = await gpsService.CreateShipment(rqG);
+                newHis.Response = resG.ConvertObjectToString();
+                if (resG.Success == true)
+                {
+                    sTrackingId = resG.Data?.TrackingNo;
+                    var newItem = new CShipment
+                    {
+                        Id = item.Id,
+                        ShipmentId = resG.Data?.ShipmentId,
+                        Cost = resG.Data?.Fees?.Sum(s => s.Amount) ?? 0,
+                        TrackIds = resG.Data?.TrackingNo,
+                    };
+                    //Get label if the processing is successful
+                    var gpsResult = await gpsService.GetLabel(new GpsLabelRequest()
+                    {
+                        ShipmentId = newItem.ShipmentId
+                    });
+                    if (gpsResult is { Success: true, Data.Count: > 0 })
+                    {
+                        newItem.Labels ??= [];
+                        newItem.TrackIds = "";
+                        foreach (var itemLabel in gpsResult.Data!)
+                        {
+                            if (itemLabel.LabelBase64S != null)
+                            {
+                                newItem.Labels.AddRange(itemLabel.LabelBase64S);
+                            }
+                            else
+                            {
+                                newItem.Labels.Add(new LabelDetail()
+                                {
+                                    Label = itemLabel.LabelBase64,
+                                    TrackignNo = itemLabel.TrackingNo,
+                                });
+                            }
+
+                            newItem.TrackIds += itemLabel.TrackingNo + ", ";
+                        }
+                    }
+
+                    oUps.Add(newItem);
+                    rqBalance = new BalanceRequest()
+                    {
+                        UserId = userId,
+                        Amount = dAmount,
+                        Action = ActionCommandType.Delete
+                    };
+                    await FuncBalance(rqBalance);
+                }
+
+                result.Success = resG.Success;
+                result.TrackingId = sTrackingId;
+                result.ErrorMessage = resG.ErrorMessage;
+
+                break;
+            case ApiName.FirstMile:
+                var rqF = TransformHelper.ToFirstMile(item);
+                var resF = await firstMileService.CreateLabel(rqF);
+                newHis.Response = resF.ConvertObjectToString();
+                if (resF.Errors is null or { Length: 0 })
+                {
+                    var aLabels = resF.PackageData;
+                    var newItem = new CShipment
+                    {
+                        Id = item.Id,
+                        Labels = aLabels.Select(s => new LabelDetail()
+                        {
+                            Label = s.LabelImageBase64,
+                            TrackignNo = s.TrackingNumber
+                        }).ToList(),
+                        Cost = (double)aLabels.Sum(s => s.RateInfo.Cost),
+                        TrackIds = aLabels.Select(s => s.TrackingNumber).Aggregate((a, b) => $"{a},{b}")
+                    };
+                    oUps.Add(newItem);
+                    rqBalance = new BalanceRequest()
+                    {
+                        UserId = userId,
+                        Amount = dAmount,
+                        Action = ActionCommandType.Delete
+                    };
+                    await FuncBalance(rqBalance);
+                    result.Success = true;
+                    result.TrackingId = newItem.TrackIds;
+                    result.ErrorMessage = "The label is created";
+                }
+                else
+                {
+                    result.Success = false;
+                    result.ErrorMessage = resF.Errors.Aggregate((a, b) => $"{a} {b}");
+                }
+
+                break;
+            case ApiName.UnitedBridge:
+                var rqU = TransformHelper.ToUnitedBridge(item);
+                var resU = await unitedBrideService.CreateLabel(rqU);
+                newHis.Response = resU.ConvertObjectToString();
+                if (resU.zone > -1)
+                {
+                    var newLabel = new LabelDetail()
+                    {
+                        TrackignNo = resU.tracking_number
+                    };
+                    var spdfLink = resU.postage_url;
+                    if (spdfLink.NotIsNullOrEmpty())
+                    {
+                        var clientLabel = new HttpClient();
+                        using var httpResponseImage = await clientLabel.GetAsync(spdfLink);
+                        using var ms = new MemoryStream();
+                        await httpResponseImage.Content.CopyToAsync(ms);
+                        var bytes = ms.ToArray();
+                        newLabel.Label = Convert.ToBase64String(bytes);
+                    }
+
+                    oUps.Add(new CShipment
+                    {
+                        Id = item.Id,
+                        Labels = [newLabel],
+                        Cost = resU.rate?.total,
+                        TrackIds = resU.tracking_number,
+                    });
+                    rqBalance = new BalanceRequest()
+                    {
+                        UserId = userId,
+                        Amount = dAmount,
+                        Action = ActionCommandType.Delete
+                    };
+                    await FuncBalance(rqBalance);
+                    result.Success = true;
+                    result.ErrorMessage = "The label is created";
+                    result.TrackingId = resU.tracking_number;
+                }
+                else
+                {
+                    result.Success = false;
+                    result.ErrorMessage = resU.service;
+                }
+
+                break;
+        }
+
+        oHis.Add(newHis);
+        if (result.Success == false || oUps is { Count: 0 })
+        {
+            return result;
+        }
+
+        await mediator.Send(new UpdateLabelShipmentCommand()
+        {
+            Data = oUps,
+            History = oHis
+        });
+        result.Data = new DownloadFileContent();
+        var lstLabels = oUps.SelectMany(s => s.Labels!).ToList().ToList();
+        if (lstLabels.Count == 1)
+        {
+            result.Data.code = $"{lstLabels[0].TrackignNo}.pdf";
+            result.Data.content = Convert.FromBase64String($"{lstLabels[0].Label}");
+        }
+        else
+        {
+            using var compressedFileStream = new MemoryStream();
+            using (var zipArchive = new ZipArchive(compressedFileStream, ZipArchiveMode.Update, false))
+            {
+                foreach (var iLabel in lstLabels)
+                {
+                    var zipEntry = zipArchive.CreateEntry($"{iLabel.TrackignNo}.pdf");
+                    var bContent = Convert.FromBase64String($"{iLabel.Label}");
+                    using var originalFileStream = new MemoryStream(bContent);
+                    await using var zipEntryStream = zipEntry.Open();
+                    await originalFileStream.CopyToAsync(zipEntryStream);
+                }
+            }
+
+            result.Data.code = $"{DateTime.UtcNow.Ticks}.zip";
+            result.Data.fileType = "application/octet-stream";
+            result.Data.content = compressedFileStream.ToArray();
+        }
+
+        return result;
     }
 
     public async Task<List<CResult<string>>> CancelShipment(List<string> input, string? userId)

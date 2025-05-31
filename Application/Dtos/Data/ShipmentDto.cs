@@ -98,6 +98,9 @@ public class ShipmentDto : AggregateRoot<Guid>, IBaseShipment
 
     [Description("Price of shipment")] public double? Price { get; set; } = 0;
 
+    [Description("Zone Price of shipment")]
+    public int ZonePrice { get; set; } = 0;
+
     [Description("Charge Weight of shipment")]
     public double? ChargeWeight { get; set; } = 0;
 

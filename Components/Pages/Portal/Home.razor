@@ -1,5 +1,6 @@
 ﻿@page "/portal"
 @using Leus.Application.Features.Catalog.Queries
+@using LeUs.Application.Features.Data.Commands
 @using LeUs.Application.Features.Data.Queries
 @* @rendermode @(new InteractiveServerRenderMode(prerender:false)) *@
 <SectionContent SectionName="@NavConstants.TopLeft">
@@ -56,6 +57,20 @@
                 </div>
             </div>
         </div>
+        <AuthorizeView Roles="@RoleConstants.AccountingRole">
+            <div class="col-12 col-md-6 col-xxl d-flex">
+                <div class="card flex-fill">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <span class="fs-4 fw-semibold text-gray-500 me-1 align-self-start">$</span>
+                            <span
+                                class="fs-2hx fw-bold text-gray-900 me-2 lh-1 ls-n2">@_items?.Where(w => w.Status == 2).Sum(s => s.Profit).ToString("N2")</span>
+                        </div>
+                        <span class="text-gray-500 pt-1 fw-semibold fs-6">Profit</span>
+                    </div>
+                </div>
+            </div>
+        </AuthorizeView>
     </div>
     <div class="row my-3">
         <div class="col-12 col-md-6 col-xxl d-flex">
@@ -112,14 +127,15 @@
                             <span class="path2"></span>
                             <span class="path3"></span>
                         </i>
-                        <span class="fs-2hx fw-bold text-gray-900 me-2 lh-1 ls-n2">@_items?.Sum(s => s.CancelLabelNo)</span>
+                        <span
+                            class="fs-2hx fw-bold text-gray-900 me-2 lh-1 ls-n2">@_items?.Sum(s => s.CancelLabelNo)</span>
                     </div>
                     <span class="text-gray-500 pt-1 fw-semibold fs-6">Cancel Labels</span>
                 </div>
             </div>
         </div>
     </div>
-    
+
 </div>
 @if (!IsLoading)
 {
@@ -162,6 +178,10 @@
                     <th>Service Code</th>
                     <th>Total Amount</th>
                     <th>Other Amount</th>
+                    <AuthorizeView Roles="@RoleConstants.AccountingRole">
+                        <th>Cost</th>
+                        <th>Profit</th>
+                    </AuthorizeView>
                     <th>Shipments</th>
                     <th>Cancel Shipments</th>
                     <th>Labels</th>
@@ -182,6 +202,10 @@
                             <td>@item.ServiceCode</td>
                             <td>@((item.Amount * (item.Status == 3 ? 0 : 1)).ToString("N2"))</td>
                             <td>@(((item.TotalAmount - item.Amount) * (item.Status == 3 ? 0 : 1)).ToString("N2"))</td>
+                            <AuthorizeView Roles="@RoleConstants.AccountingRole">
+                                <td>@((item.Cost * (item.Status == 2 ? 1 : 0)).ToString("N2"))</td>
+                                <td>@((item.Profit * (item.Status == 2 ? 1 : 0)).ToString("N2"))</td>
+                            </AuthorizeView>
                             <td>@(item.ActiveNo + item.DeActiveNo)</td>
                             <td>@(item.DeActiveNo)</td>
                             <td>@item.GenerateLabelNo</td>

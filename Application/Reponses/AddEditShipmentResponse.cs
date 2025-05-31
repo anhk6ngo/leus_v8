@@ -6,6 +6,8 @@ public class AddEditShipmentResponse
     public Guid Id { get; set; }
     [Description("This is a price for shipment")]
     public double? Price { get; set; } = 0;
+    [Description("Zone Price of shipment")]
+    public int ZonePrice { get; set; }
     [Description("This is a Remote fee.")]
     public double? Remote { get; set; } = 0;
     [Description("ReferenceId. You can use it to generate label, get label, cancel label")]
@@ -20,4 +22,8 @@ public class AddEditShipmentResponse
     public double? OverLimitFee { get; set; }
     [Description("Excess Volume Fee")]
     public double? ExcessVolumeFee { get; set; }
+    [Description("The shipment label is returned by labelbase64")]
+    public DownloadFileContent? Label { get; set; }
+    public string? TrackingId { get; set; }
+    public string? ServiceCode { get; set; }
 }

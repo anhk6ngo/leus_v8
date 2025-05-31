@@ -171,14 +171,100 @@ public class ShipmentController(
             {
                 Email = $"{User.GetEmail()}"
             });
-            return Results.Ok(await _mediator!.Send(new AddEditShipmentCommand()
+            var resultAddShipment = await _mediator!.Send(new AddEditShipmentCommand()
             {
                 Request = new AddEditDataRequest<CShipmentDto>()
                 {
                     Data = dConvert,
                     Action = ActionCommandType.Add
                 }
-            }));
+            });
+            resultAddShipment.Data.ServiceCode = request.ServiceCode;
+            return Results.Ok(resultAddShipment);
+        }
+
+        var problemDetails = new HttpValidationProblemDetails(valResult.ToDictionary())
+        {
+            Status = StatusCodes.Status400BadRequest,
+            Title = "Validation Failed",
+            Detail = "One or more validation errors occurred.",
+            Instance = "api/shipment"
+        };
+        return Results.Problem(problemDetails);
+    }
+    
+    [HttpPost("create-label")]
+    [ProducesResponseType<Result<AddEditShipmentResponse>>(StatusCodes.Status200OK, "application/json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    [EndpointSummary("3. Create new Shipment and generate label")]
+    public async Task<IHttpResult> CreateLabelPost(ShipmentDto request)
+    {
+        var dConvert = new CShipmentDto();
+        request.Adapt(dConvert);
+        if (dConvert.ShipmentStatus != 0)
+        {
+            dConvert.ShipmentStatus = 0;
+        }
+
+        var valResult = await shipmentVal.ValidateAsync(dConvert);
+        if (valResult.IsValid)
+        {
+            var services = await _mediator!.Send(new GetAllServiceQuery());
+            var oFind = services.FirstOrDefault(w => w.ServiceCode == dConvert.ServiceCode);
+            if (oFind == null)
+            {
+                var problemServiceDetails = new HttpValidationProblemDetails(valResult.ToDictionary())
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Title = "Validation Failed",
+                    Detail = "Not found the service.",
+                    Instance = "api/shipment"
+                };
+                return Results.Problem(problemServiceDetails);
+            }
+
+            dConvert.ServiceCode = oFind.ServiceCode;
+            dConvert.ApiName = oFind.ApiName;
+            dConvert.ServiceId = $"{oFind.Id}";
+            dConvert.Weight = dConvert.Boxes?.Sum(s => s.Weight) ?? 0;
+            dConvert.CustomerId = await _mediator.Send(new GetAllCustomerByEmailQuery()
+            {
+                Email = $"{User.GetEmail()}"
+            });
+            var resultAddShipment = await _mediator!.Send(new AddEditShipmentCommand()
+            {
+                Request = new AddEditDataRequest<CShipmentDto>()
+                {
+                    Data = dConvert,
+                    Action = ActionCommandType.Add
+                }
+            });
+            if (resultAddShipment.Succeeded == false)
+            {
+                return Results.Ok(resultAddShipment);
+            }
+
+            dConvert.Remote = resultAddShipment.Data.Remote;
+            dConvert.Price = resultAddShipment.Data.Price;
+            dConvert.ExtraLongFee = resultAddShipment.Data.ExtraLongFee;
+            dConvert.OverLimitFee = resultAddShipment.Data.OverLimitFee;
+            dConvert.ExcessVolumeFee = resultAddShipment.Data.ExcessVolumeFee;
+            dConvert.ServiceCode1 = resultAddShipment.Data.ServiceCode;
+            dConvert.ReferenceId = resultAddShipment.Data.ReferenceId;
+            dConvert.Id = resultAddShipment.Data.Id;
+            resultAddShipment.Data.ServiceCode = request.ServiceCode;
+            var userId = User.GetUserId();
+            //Generate label
+            var resultLabel = await leUsService.CreateShipment(dConvert, services, userId);
+            if (resultLabel.Success == false)
+            {
+                resultAddShipment.Succeeded = false;
+                resultAddShipment.Messages.Add($"{resultLabel.ErrorMessage}");
+                return Results.Ok(resultAddShipment);
+            }
+            resultAddShipment.Data.TrackingId = resultLabel.TrackingId;
+            resultAddShipment.Data.Label = resultLabel.Data;
+            return Results.Ok(resultAddShipment);
         }
 
         var problemDetails = new HttpValidationProblemDetails(valResult.ToDictionary())
@@ -250,7 +336,7 @@ public class ShipmentController(
     }
 
     [HttpDelete("{id}")]
-    [EndpointSummary("3. Delete Shipment")]
+    [EndpointSummary("4. Delete Shipment")]
     [ProducesResponseType<Result<Guid>>(StatusCodes.Status200OK, "application/json")]
     public async Task<IActionResult> Delete(Guid id)
     {
@@ -260,7 +346,7 @@ public class ShipmentController(
     [HttpPost("generate-label")]
     [ProducesResponseType<List<CResult<string>>>(StatusCodes.Status200OK, "application/json")]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
-    [EndpointSummary("4. Generate Labels. Input is list of referenceId that return when you create a shipment")]
+    [EndpointSummary("5. Generate Labels. Input is list of referenceId that return when you create a shipment")]
     public async Task<IHttpResult> GenerateLabel(List<string> request)
     {
         if (request is { Count: 0 })
@@ -302,7 +388,7 @@ public class ShipmentController(
 
     [HttpPost("get-label")]
     [ProducesResponseType<DownloadFileContent>(StatusCodes.Status200OK, "application/json")]
-    [EndpointSummary("5. Get Labels. Input is list of referenceId that return when you create a shipment. Result return is pdf or zip file")]
+    [EndpointSummary("6. Get Labels. Input is list of referenceId that return when you create a shipment. Result return is pdf or zip file")]
     public async Task<IActionResult> GetLabel(List<string> request)
     {
         return Ok(await leUsService.GetLabel(request, User.GetUserId()));
@@ -310,7 +396,7 @@ public class ShipmentController(
 
     [HttpDelete("cancel-label")]
     [ProducesResponseType<List<CResult<string>>>(StatusCodes.Status200OK, "application/json")]
-    [EndpointSummary("6. Cancel Labels. Input is list of referenceId that return when you create a shipment")]
+    [EndpointSummary("7. Cancel Labels. Input is list of referenceId that return when you create a shipment")]
     public async Task<IActionResult> CancelLabel([FromBody] List<string> request)
     {
         return Ok(await leUsService.CancelShipment(request, User.GetUserId()));
@@ -318,7 +404,7 @@ public class ShipmentController(
 
     [HttpGet("track/{refId}")]
     [ProducesResponseType<CTrackingResponse>(StatusCodes.Status200OK, "application/json")]
-    [EndpointSummary("7. Tracking Shipment. The tracking result will be not real time. Input is referenceId that return when you create a shipment")]
+    [EndpointSummary("8. Tracking Shipment. The tracking result will be not real time. Input is referenceId that return when you create a shipment")]
     public async Task<IActionResult> GetTrack(string? refId)
     {
         var data = await leUsService.GetTrack([$"{refId}"], User.GetUserId());

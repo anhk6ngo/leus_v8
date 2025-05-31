@@ -1,4 +1,6 @@
-﻿namespace LeUs.Application.Features.Data.Commands;
+﻿using System.Diagnostics;
+
+namespace LeUs.Application.Features.Data.Commands;
 
 public class FuncBalanceCommand : IRequest<bool>
 {
@@ -13,9 +15,12 @@ internal class FuncBalanceCommandHandler(IUnitOfWork<Guid, PortalContext> unitOf
         var id = $"{request.Input.UserId}".ToGuid();
         if (request.Input.Action == ActionCommandType.GetData)
         {
-            return await unitOfWork.RepositoryAgg<UserBalance>().Entities
+            var dAmount1 = await unitOfWork.RepositoryAgg<UserBalance>().Entities
+                .Where(w=>w.Id == id)
                 .AsNoTracking()
-                .AnyAsync(w => w.Id == id && w.Amount >= request.Input.Amount, cancellationToken);
+                .Select(s=>s.Amount)
+                .FirstOrDefaultAsync(cancellationToken);
+            return dAmount1 > request.Input.Amount;
         }
         var dAmount = request.Input.Amount * (request.Input.Action == ActionCommandType.Add ? 1 : -1);
         await unitOfWork.RepositoryAgg<UserBalance>().Entities.Where(w => w.Id == id)

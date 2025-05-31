@@ -70,6 +70,7 @@ internal class AddEditShipmentCommandHandler(
 
                 oNewItem.ServiceCode1 = priceResponse.ServiceCode;
                 oNewItem.ApiName1 = priceResponse.ApiName;
+                response.ServiceCode = oNewItem.ServiceCode1;
                 var sNo = $"{DateTime.Now.ToUtc():MMyy}";
                 do
                 {

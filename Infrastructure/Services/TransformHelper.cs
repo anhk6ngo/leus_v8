@@ -12,7 +12,7 @@ public static class TransformHelper
             metadata = new UMetaData()
             {
                 reference1 = item.ReferenceId,
-                reference2 = $"{item.ReferenceId2} {item.ReferenceId3}".Trim(),
+                reference2 = $"{item.ReferenceId2}{(item.ReferenceId3.NotIsNullOrEmpty() ? "|" + item.ReferenceId3 : "")}".Trim(),
             },
             sender = new UAddress()
             {
@@ -76,6 +76,7 @@ public static class TransformHelper
 
         return result;
     }
+
     public static DhlLabelRequest ToFirstMile(CShipmentDto item)
     {
         var labelType = item.ServiceCode switch
@@ -182,6 +183,7 @@ public static class TransformHelper
 
         return result;
     }
+
     public static DomesticRateRequest ToFirstMileRate(CShipmentDto item)
     {
         var labelType = item.ServiceCode switch
@@ -218,7 +220,7 @@ public static class TransformHelper
                 }).ToArray()
             },
         };
-        result.WeightOz = result.PackageDetail.Packages.Sum(s=>s.WeightOz);
+        result.WeightOz = result.PackageDetail.Packages.Sum(s => s.WeightOz);
         return result;
     }
 }

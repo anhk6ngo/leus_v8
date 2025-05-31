@@ -21,9 +21,10 @@
                     property.SetColumnType("character varying(255)");
                 }
             }
+
             base.OnModelCreating(builder);
         }
-
+        
         // protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
         // {
         //     configurationBuilder.Properties<DateTime>()
@@ -38,7 +39,7 @@
                 {
                     case EntityState.Added:
                         entry.Entity.CreatedOn = dateTimeService.NowUtc;
-                        entry.Entity.CreatedBy =  await userService.UserId();
+                        entry.Entity.CreatedBy = await userService.UserId();
                         break;
                     case EntityState.Modified:
                         entry.Entity.LastModifiedOn = dateTimeService.NowUtc;

@@ -88,7 +88,6 @@ internal class AddEditTopUpCommandHandler(IUnitOfWork<Guid, PortalContext> unitO
                             {
                                 oFind.Amount += currentItem.ApproveAmount ?? 0;
                             }
-
                             await unitOfWork.RepositoryAgg<UserBalance>().UpdateAsync(oFind);
                         }
                     }
