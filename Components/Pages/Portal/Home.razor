@@ -186,7 +186,7 @@
                     <th>Shipments</th>
                     <th>Cancel Shipments</th>
                     <th>Labels</th>
-                    <th>Cancel Labels</th>
+                    <th>Void Labels</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -251,7 +251,6 @@
                 if (ShareUserInfo.Role.Contains(RoleConstants.AccountingRole))
                 {
                     _request.UserId = string.Empty;
-                    DateRange = "".InitDateRange(iEnd: 3);
                     isAcc = true;
                     _customers = await Mediator.Send(new GetAllCustomerQuery());
                 }

@@ -50,16 +50,15 @@ public class LeUsService(
                 });
                 continue;
             }
-
+            //Check balance and reduce amount before generate label
             var rqBalance = new BalanceRequest()
             {
                 UserId = userId,
                 Amount = dAmount,
                 Action = ActionCommandType.GetData
             };
-            var dRemain = await FuncBalance(rqBalance);
-            dRemain -= dAmount;
-            if (dRemain < 0.0)
+            var blnCheck = await FuncBalance(rqBalance);
+            if (!blnCheck)
             {
                 results.Add(new CResult<string>()
                 {
@@ -69,12 +68,12 @@ public class LeUsService(
                 });
                 break;
             }
-
             var newHis = new CHistoryLabel()
             {
                 ReferenceId = item.ReferenceId,
                 Request = item.ConvertObjectToString()
             };
+            var blnFailure = false;
             var sTrackingId = "";
             switch (oSer.ApiName)
             {
@@ -92,15 +91,11 @@ public class LeUsService(
                             Cost = resG.Data?.Fees?.Sum(s => s.Amount) ?? 0,
                             TrackIds = resG.Data?.TrackingNo,
                         });
-                        rqBalance = new BalanceRequest()
-                        {
-                            UserId = userId,
-                            Amount = dAmount,
-                            Action = ActionCommandType.Delete
-                        };
-                        dRemain = await FuncBalance(rqBalance);
                     }
-
+                    else
+                    {
+                        blnFailure = true;
+                    }
                     results.Add(new CResult<string>()
                     {
                         Success = resG.Success,
@@ -128,13 +123,6 @@ public class LeUsService(
                             TrackIds = aLabels.Select(s => s.TrackingNumber).Aggregate((a, b) => $"{a},{b}")
                         };
                         oUps.Add(newItem);
-                        rqBalance = new BalanceRequest()
-                        {
-                            UserId = userId,
-                            Amount = dAmount,
-                            Action = ActionCommandType.Delete
-                        };
-                        dRemain = await FuncBalance(rqBalance);
                         results.Add(new CResult<string>()
                         {
                             Success = true,
@@ -145,6 +133,7 @@ public class LeUsService(
                     }
                     else
                     {
+                        blnFailure = true;
                         results.Add(new CResult<string>()
                         {
                             Success = false,
@@ -182,13 +171,7 @@ public class LeUsService(
                             Cost = resU.rate?.total,
                             TrackIds = resU.tracking_number,
                         });
-                        rqBalance = new BalanceRequest()
-                        {
-                            UserId = userId,
-                            Amount = dAmount,
-                            Action = ActionCommandType.Delete
-                        };
-                        dRemain = await FuncBalance(rqBalance);
+                        blnFailure = true;
                         results.Add(new CResult<string>()
                         {
                             Success = true,
@@ -209,13 +192,15 @@ public class LeUsService(
                     break;
             }
             oHis.Add(newHis);
-            if (dRemain > 0.0) continue;
-            results.Add(new CResult<string>()
+            if (!blnFailure) continue;
+            //Increase balance if generate label failure
+            rqBalance = new BalanceRequest()
             {
-                Success = false,
-                ErrorMessage = "Balance is insufficient. Please top-up and try again"
-            });
-            break;
+                UserId = userId,
+                Amount = dAmount,
+                Action = ActionCommandType.Add
+            };
+            await FuncBalance(rqBalance);
         }
 
         if (oUps is { Count: > 0 })
@@ -226,7 +211,6 @@ public class LeUsService(
                 History = oHis
             });
         }
-
         return results;
     }
 
@@ -256,22 +240,21 @@ public class LeUsService(
             result.ErrorMessage = "Service not found";
             return result;
         }
-
+        //Check balance and reduce amount before generate label
         var rqBalance = new BalanceRequest()
         {
             UserId = userId,
             Amount = dAmount,
             Action = ActionCommandType.GetData
         };
-        var dRemain = await FuncBalance(rqBalance);
-        dRemain -= dAmount;
-        if (dRemain < 0.0)
+        var blnCheck = await FuncBalance(rqBalance);
+        if (!blnCheck)
         {
             result.Success = false;
             result.ErrorMessage = "Balance is insufficient. Please top-up and try again";
             return result;
         }
-
+        var blnFailure = false;
         var newHis = new CHistoryLabel()
         {
             ReferenceId = item.ReferenceId,
@@ -321,21 +304,15 @@ public class LeUsService(
                             newItem.TrackIds += itemLabel.TrackingNo + ", ";
                         }
                     }
-
-                    oUps.Add(newItem);
-                    rqBalance = new BalanceRequest()
+                    else
                     {
-                        UserId = userId,
-                        Amount = dAmount,
-                        Action = ActionCommandType.Delete
-                    };
-                    await FuncBalance(rqBalance);
+                        blnFailure = true;
+                    }
+                    oUps.Add(newItem);
                 }
-
                 result.Success = resG.Success;
                 result.TrackingId = sTrackingId;
                 result.ErrorMessage = resG.ErrorMessage;
-
                 break;
             case ApiName.FirstMile:
                 var rqF = TransformHelper.ToFirstMile(item);
@@ -356,19 +333,13 @@ public class LeUsService(
                         TrackIds = aLabels.Select(s => s.TrackingNumber).Aggregate((a, b) => $"{a},{b}")
                     };
                     oUps.Add(newItem);
-                    rqBalance = new BalanceRequest()
-                    {
-                        UserId = userId,
-                        Amount = dAmount,
-                        Action = ActionCommandType.Delete
-                    };
-                    await FuncBalance(rqBalance);
                     result.Success = true;
                     result.TrackingId = newItem.TrackIds;
                     result.ErrorMessage = "The label is created";
                 }
                 else
                 {
+                    blnFailure = true;
                     result.Success = false;
                     result.ErrorMessage = resF.Errors.Aggregate((a, b) => $"{a} {b}");
                 }
@@ -402,19 +373,13 @@ public class LeUsService(
                         Cost = resU.rate?.total,
                         TrackIds = resU.tracking_number,
                     });
-                    rqBalance = new BalanceRequest()
-                    {
-                        UserId = userId,
-                        Amount = dAmount,
-                        Action = ActionCommandType.Delete
-                    };
-                    await FuncBalance(rqBalance);
                     result.Success = true;
                     result.ErrorMessage = "The label is created";
                     result.TrackingId = resU.tracking_number;
                 }
                 else
                 {
+                    blnFailure = true;
                     result.Success = false;
                     result.ErrorMessage = resU.service;
                 }
@@ -422,6 +387,18 @@ public class LeUsService(
                 break;
         }
 
+        if (blnFailure)
+        {
+            //Increase balance if generate label failure
+            rqBalance = new BalanceRequest()
+            {
+                UserId = userId,
+                Amount = dAmount,
+                Action = ActionCommandType.Add
+            };
+            await FuncBalance(rqBalance);
+        }
+        
         oHis.Add(newHis);
         if (result.Success == false || oUps is { Count: 0 })
         {
@@ -454,12 +431,10 @@ public class LeUsService(
                     await originalFileStream.CopyToAsync(zipEntryStream);
                 }
             }
-
             result.Data.code = $"{DateTime.UtcNow.Ticks}.zip";
             result.Data.fileType = "application/octet-stream";
             result.Data.content = compressedFileStream.ToArray();
         }
-
         return result;
     }
 
@@ -767,7 +742,7 @@ public class LeUsService(
         return $"{aData.FirstOrDefault()}".ConvertToInt();
     }
 
-    public async Task<double> FuncBalance(BalanceRequest input)
+    public async Task<bool> FuncBalance(BalanceRequest input)
     {
         return await mediator.Send(new FuncBalanceCommand()
         {

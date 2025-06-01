@@ -1,44 +1,31 @@
-﻿using System.Diagnostics;
+﻿namespace LeUs.Application.Features.Data.Commands;
 
-namespace LeUs.Application.Features.Data.Commands;
-
-public class FuncBalanceCommand : IRequest<double>
+public class FuncBalanceCommand : IRequest<bool>
 {
     public BalanceRequest Input { get; set; } = null!;
 }
 
 internal class FuncBalanceCommandHandler(IUnitOfWork<Guid, PortalContext> unitOfWork)
-    : IRequestHandler<FuncBalanceCommand, double>
+    : IRequestHandler<FuncBalanceCommand, bool>
 {
-    public async Task<double> Handle(FuncBalanceCommand request, CancellationToken cancellationToken)
+    public async Task<bool> Handle(FuncBalanceCommand request, CancellationToken cancellationToken)
     {
         var id = $"{request.Input.UserId}".ToGuid();
         if (request.Input.Action == ActionCommandType.GetData)
         {
-            return await unitOfWork.RepositoryAgg<UserBalance>().Entities
-                .Where(w=>w.Id == id)
-                .AsNoTracking()
-                .Select(s=>s.Amount)
-                .FirstOrDefaultAsync(cancellationToken);
+            //Check end-user balance
+            var oCheck = await unitOfWork.RepositoryAgg<UserBalance>().SingleAsync(w=>w.Id == id && w.Amount >= request.Input.Amount);
+            if (oCheck == null) return false;
+            //Reduce end-user balance
+            oCheck.Amount -= request.Input.Amount;
+            await unitOfWork.RepositoryAgg<UserBalance>().UpdateAsync(oCheck);
+            await unitOfWork.Commit(cancellationToken);
+            return true;
         }
         var dAmount = request.Input.Amount * (request.Input.Action == ActionCommandType.Add ? 1 : -1);
-        var oFind = await unitOfWork.RepositoryAgg<UserBalance>().SingleAsync(w=>w.Id == id);
-        if (oFind != null)
-        {
-            oFind.Amount += dAmount;
-            dAmount = oFind.Amount;
-            await unitOfWork.RepositoryAgg<UserBalance>().UpdateAsync(oFind);
-        }
-        else
-        {
-            oFind = new UserBalance()
-            {
-                Id = id,
-                Amount = dAmount,
-            };
-            await unitOfWork.RepositoryAgg<UserBalance>().AddAsync(oFind);
-        }
-        await unitOfWork.Commit(cancellationToken);
-        return dAmount.ToRound(2);
+        await unitOfWork.RepositoryAgg<UserBalance>().Entities.Where(w => w.Id == id)
+            .ExecuteUpdateAsync(x => x.SetProperty(b => b.Amount, b => b.Amount + dAmount),
+                cancellationToken);
+        return true;
     }
 }
