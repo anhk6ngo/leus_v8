@@ -10,6 +10,6 @@ public interface ILeUsService : IManager
     public Task<DownloadFileContent> GetLabel(List<string> input, string? userId);
     public Task<CTrackingResponse> GetTrack(List<string> input, string? userId);
     public Task<int> GetZone(string from, string to);
-    public Task<bool> FuncBalance(BalanceRequest input);
+    public Task<double> FuncBalance(BalanceRequest input);
     public Task<double> GetRate(CShipmentDto input);
 }

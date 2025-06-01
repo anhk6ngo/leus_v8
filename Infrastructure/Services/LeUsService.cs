@@ -57,8 +57,9 @@ public class LeUsService(
                 Amount = dAmount,
                 Action = ActionCommandType.GetData
             };
-            var blnCheck = await FuncBalance(rqBalance);
-            if (!blnCheck)
+            var dRemain = await FuncBalance(rqBalance);
+            dRemain -= dAmount;
+            if (dRemain < 0.0)
             {
                 results.Add(new CResult<string>()
                 {
@@ -97,7 +98,7 @@ public class LeUsService(
                             Amount = dAmount,
                             Action = ActionCommandType.Delete
                         };
-                        await FuncBalance(rqBalance);
+                        dRemain = await FuncBalance(rqBalance);
                     }
 
                     results.Add(new CResult<string>()
@@ -133,7 +134,7 @@ public class LeUsService(
                             Amount = dAmount,
                             Action = ActionCommandType.Delete
                         };
-                        await FuncBalance(rqBalance);
+                        dRemain = await FuncBalance(rqBalance);
                         results.Add(new CResult<string>()
                         {
                             Success = true,
@@ -187,7 +188,7 @@ public class LeUsService(
                             Amount = dAmount,
                             Action = ActionCommandType.Delete
                         };
-                        await FuncBalance(rqBalance);
+                        dRemain = await FuncBalance(rqBalance);
                         results.Add(new CResult<string>()
                         {
                             Success = true,
@@ -205,11 +206,16 @@ public class LeUsService(
                             ErrorMessage = resU.service,
                         });
                     }
-
                     break;
             }
-
             oHis.Add(newHis);
+            if (dRemain > 0.0) continue;
+            results.Add(new CResult<string>()
+            {
+                Success = false,
+                ErrorMessage = "Balance is insufficient. Please top-up and try again"
+            });
+            break;
         }
 
         if (oUps is { Count: > 0 })
@@ -257,8 +263,9 @@ public class LeUsService(
             Amount = dAmount,
             Action = ActionCommandType.GetData
         };
-        var blnCheck = await FuncBalance(rqBalance);
-        if (!blnCheck)
+        var dRemain = await FuncBalance(rqBalance);
+        dRemain -= dAmount;
+        if (dRemain < 0.0)
         {
             result.Success = false;
             result.ErrorMessage = "Balance is insufficient. Please top-up and try again";
@@ -760,7 +767,7 @@ public class LeUsService(
         return $"{aData.FirstOrDefault()}".ConvertToInt();
     }
 
-    public async Task<bool> FuncBalance(BalanceRequest input)
+    public async Task<double> FuncBalance(BalanceRequest input)
     {
         return await mediator.Send(new FuncBalanceCommand()
         {

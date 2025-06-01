@@ -1,14 +1,11 @@
-﻿using Dapper;
-using Npgsql;
-
-namespace LeUs.Application.Features.Data.Queries;
+﻿namespace LeUs.Application.Features.Data.Queries;
 
 public class GetBalanceByUserQuery : IRequest<UserBalanceDto?>
 {
     public string? UserId { get; set; }
 }
 
-internal class GetBalanceQueryHandler(IUnitOfWork<Guid, PortalContext> unitOfWork)
+internal class GetBalanceByUserQueryHandler(IUnitOfWork<Guid, PortalContext> unitOfWork)
     : IRequestHandler<GetBalanceByUserQuery, UserBalanceDto?>
 {
     public async Task<UserBalanceDto?> Handle(GetBalanceByUserQuery request,

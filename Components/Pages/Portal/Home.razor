@@ -3,6 +3,7 @@
 @using LeUs.Application.Features.Data.Commands
 @using LeUs.Application.Features.Data.Queries
 @* @rendermode @(new InteractiveServerRenderMode(prerender:false)) *@
+@inject IRoleService RoleService
 <SectionContent SectionName="@NavConstants.TopLeft">
     <Breadcrumb Slash="true"></Breadcrumb>
     <Breadcrumb TextMuted="true">Dashboard</Breadcrumb>
@@ -232,25 +233,12 @@
     private List<SumShipmentResponse>? _items = [];
     private bool _initChart = false;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         DateRange = "".InitDateRange();
+        IsLoading = true;
         _request.UserId = $"{ShareUserInfo?.UserId}";
-        if (ShareUserInfo?.Role is { Count: > 0 })
-        {
-            if (ShareUserInfo.Role.Contains(RoleConstants.AccountingRole))
-            {
-                _request.UserId = string.Empty;
-                isAcc = true;
-                _customers = await Mediator.Send(new GetAllCustomerQuery());
-            }
-        }
-
-        _balanceDto = await Mediator.Send(new GetBalanceByUserQuery()
-        {
-            UserId = _request.UserId
-        });
-        await GetData();
+        base.OnInitialized();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -258,6 +246,25 @@
         if (firstRender)
         {
             await CallInitRangeDate();
+            if (ShareUserInfo?.Role is { Count: > 0 })
+            {
+                if (ShareUserInfo.Role.Contains(RoleConstants.AccountingRole))
+                {
+                    _request.UserId = string.Empty;
+                    DateRange = "".InitDateRange(iEnd: 3);
+                    isAcc = true;
+                    _customers = await Mediator.Send(new GetAllCustomerQuery());
+                }
+            }
+            else
+            {
+                _balanceDto = await Mediator.Send(new GetBalanceByUserQuery()
+                {
+                    UserId = _request.UserId
+                });
+            }
+
+            await GetData();
         }
 
         if (_initChart)
