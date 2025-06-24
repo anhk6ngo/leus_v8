@@ -44,6 +44,7 @@ namespace LeUs.Installers
                 Authorization = [new MyAuthorizationFilter()]
             });
             app.MapHealthChecks("/health");
+            //app.UseRateLimiter();
             app.Run();
         }
     }

@@ -44,7 +44,7 @@ internal class GetSumShipmentByUserQueryHandler(IUnitOfWork<Guid, PortalContext>
                 g.ServiceCode,
                 g.TransDate,
                 g.Status,
-                g.CustomerId
+                g.CustomerId,
             }).Select(s => new SumShipmentResponse()
             {
                 ServiceCode = s.Key.ServiceCode,

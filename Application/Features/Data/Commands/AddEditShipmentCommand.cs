@@ -23,11 +23,13 @@ internal class AddEditShipmentCommandHandler(
         {
             dCost = await leUsService.GetRate(command.Request.Data);
         }
+
         command.Request.Data.CalOverSizeFee();
         switch (command.Request.Action)
         {
             case ActionCommandType.Add:
             case ActionCommandType.Confirm:
+            case ActionCommandType.View:
                 var oNewItem = command.Request.Data.Adapt<CShipment>();
                 if ($"{oNewItem.Shipper?.Zip}".NotIsNullOrEmpty())
                 {
@@ -60,6 +62,7 @@ internal class AddEditShipmentCommandHandler(
                     {
                         oNewItem.Remote = ((dCost * 1.05 - oNewItem.Price) ?? 0).ToRound(2);
                     }
+
                     oNewItem.ExcessVolumeFee = priceResponse.ExcessVolumeFee;
                 }
                 else
@@ -71,18 +74,21 @@ internal class AddEditShipmentCommandHandler(
                 oNewItem.ServiceCode1 = priceResponse.ServiceCode;
                 oNewItem.ApiName1 = priceResponse.ApiName;
                 response.ServiceCode = oNewItem.ServiceCode1;
-                var sNo = $"{DateTime.Now.ToUtc():MMyy}";
-                do
+                if (command.Request.Action != ActionCommandType.View)
                 {
-                    var rndNo = $"{sNo}{SharedExtension.Extensions.GenerateRandomNumber(100000, 999999999)}";
-                    if (await unitOfWork.RepositoryNew<CShipment>().Entities
-                            .AnyAsync(w => w.ReferenceId == rndNo, cancellationToken)) continue;
-                    oNewItem.ReferenceId = rndNo;
-                    break;
-                } while (true);
+                    var sNo = $"{DateTime.Now.ToUtc():MMyy}";
+                    do
+                    {
+                        var rndNo = $"{sNo}{SharedExtension.Extensions.GenerateRandomNumber(100000, 999999999)}";
+                        if (await unitOfWork.RepositoryNew<CShipment>().Entities
+                                .AnyAsync(w => w.ReferenceId == rndNo, cancellationToken)) continue;
+                        oNewItem.ReferenceId = rndNo;
+                        break;
+                    } while (true);
 
-                await unitOfWork.RepositoryNew<CShipment>().AddAsync(oNewItem);
-                await unitOfWork.Commit(cancellationToken);
+                    await unitOfWork.RepositoryNew<CShipment>().AddAsync(oNewItem);
+                    await unitOfWork.Commit(cancellationToken);
+                }
                 oNewItem.Adapt(response);
                 return await Result<AddEditShipmentResponse>.SuccessAsync(response, "The item added");
             default:
@@ -107,6 +113,7 @@ internal class AddEditShipmentCommandHandler(
                     }
 
                     command.Request.Data.CreatedOn = currentItem.CreatedOn;
+                    command.Request.Data.ServiceCode1 = currentItem.ServiceCode1;
                     command.Request.Data.Adapt(currentItem);
                     priceResponse = await mediator.Send(new GetPriceByCountryQuery()
                     {
@@ -127,8 +134,8 @@ internal class AddEditShipmentCommandHandler(
                     currentItem.PriceCode = priceResponse.PriceCode;
                     currentItem.ChargeWeight = priceResponse.ChargeWeight;
                     currentItem.ExcessVolumeFee = priceResponse.ExcessVolumeFee;
-                    currentItem.ServiceCode1 = priceResponse.ServiceCode;
-                    currentItem.ApiName1 = priceResponse.ApiName;
+                    currentItem.ServiceCode1 = priceResponse.ServiceCode ?? currentItem.ServiceCode;
+                    currentItem.ApiName1 = priceResponse.ApiName ?? currentItem.ApiName;
                     if (currentItem is { ChargeWeight: > 0, Price: > 0 })
                     {
                         if (dCost > currentItem.Price)

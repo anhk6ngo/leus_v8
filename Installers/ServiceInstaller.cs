@@ -1,5 +1,5 @@
-﻿using LeUs.Components.Account;
-using Microsoft.AspNetCore.Authentication;
+﻿using System.Threading.RateLimiting;
+using LeUs.Components.Account;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.OpenApi.Models;
 
@@ -60,6 +60,24 @@ namespace LeUs.Installers
             services.AddHttpClient("uspsZone", c => { c.BaseAddress = new Uri("https://postcalc.usps.com/"); });
             services.AddHttpClient("UnitedBridge", c => { c.BaseAddress = new Uri("https://united-bridge.com"); });
             services.AddHealthChecks();
+            // services.AddHostedService<SystemWorker>();
+            // services.AddRateLimiter(options =>
+            // {
+            //     options.AddPolicy("PerUserPolicy", context =>
+            //     {
+            //         var user = context.User.Identity;
+            //         var userId = user?.IsAuthenticated == true
+            //             ? user.Name
+            //             : context.Connection.RemoteIpAddress?.ToString() ?? "anonymous";
+            //         return RateLimitPartition.GetFixedWindowLimiter(userId, _ => new FixedWindowRateLimiterOptions
+            //         {
+            //             PermitLimit = 10,
+            //             Window = TimeSpan.FromSeconds(5),
+            //             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            //             QueueLimit = 2
+            //         });
+            //     });
+            // });
         }
     }
 }

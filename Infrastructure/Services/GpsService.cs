@@ -7,6 +7,8 @@ namespace LeUs.Infrastructure.Services;
 
 public class GpsService(IOptions<ApiSetting> settings, IHttpClientFactory clientFactory) : IGpsService
 {
+    public string? LogContent { get; set; }
+
     public async Task<CResult<List<GpsDataService>>> GetServices()
     {
         var client = GenerateClient("", "tms.service.query");
@@ -89,8 +91,8 @@ public class GpsService(IOptions<ApiSetting> settings, IHttpClientFactory client
         var client =GenerateClient(sObject, "tms.shipment.cancel");
         var sData = new StringContent(sObject, Encoding.UTF8, "text/plain");
         using var httpResponse = await client.PostAsync("", sData);
-        var sDataResponse = await httpResponse.Content.ReadAsStringAsync();
-        return sDataResponse.ToObject<CResult<object>>();
+        LogContent = await httpResponse.Content.ReadAsStringAsync();
+        return LogContent.ToObject<CResult<object>>();
     }
 
     public async Task<CResult<GpsGetShipmentResponse>> GetShipment(GpsTrackRequest input)
@@ -109,8 +111,8 @@ public class GpsService(IOptions<ApiSetting> settings, IHttpClientFactory client
         var client =GenerateClient(sObject, "tms.shipment.create");
         var sData = new StringContent(sObject, Encoding.UTF8, "text/plain");
         using var httpResponse = await client.PostAsync("", sData);
-        var sDataResponse = await httpResponse.Content.ReadAsStringAsync();
-        return sDataResponse.ToObject<CResult<GpsCreateShipmentResponse>>();
+        LogContent = await httpResponse.Content.ReadAsStringAsync();
+        return LogContent.ToObject<CResult<GpsCreateShipmentResponse>>();
     }
 
     private HttpClient GenerateClient(string data, string method)

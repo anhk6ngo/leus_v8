@@ -53,6 +53,7 @@ public class CShipmentDto : AggregateRoot<Guid>, IShipment
     public DateTime? CreateLabelDate { get; set; }
     public DateTime? CancelLabelDate { get; set; }
     public int ZonePrice { get; set; } = 0;
+    public double TotalTime { get; set; } = 0;
     [NotMapped] public DateTime CreatedOn { get; set; }
     [NotMapped] public DateTime ShippedOn { get; set; }
     public string? ServiceId { get; set; }
@@ -79,6 +80,10 @@ public class CShipmentDto : AggregateRoot<Guid>, IShipment
 
     public void CalOverSizeFee()
     {
+        if (UnitType > 0)
+        {
+            UnitChanged();
+        }
         if (Boxes is { Count: 0 }) return;
         foreach (var box in Boxes!)
         {

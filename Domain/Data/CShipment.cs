@@ -13,6 +13,7 @@ public class CShipment : AuditableEntityNew<Guid>, IShipment, ICStoreLabel
     public int UnitType { get; set; }
     public string? TrackIds { get; set; }
     public int ZonePrice { get; set; }
+    public double TotalTime { get; set; }
     public List<LabelDetail>? Labels { get; set; }
     public string? ReferenceId2 { get; set; }
     public string? ReferenceId3 { get; set; }

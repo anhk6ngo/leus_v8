@@ -1,5 +1,6 @@
 ﻿@page "/portal/shipments"
 @attribute [Authorize]
+@attribute [StreamRendering]
 @using Leus.Application.Features.Catalog.Queries
 @using Leus.Application.Features.Data.Commands
 @using LeUs.Application.Features.Data.Commands
@@ -12,6 +13,13 @@
 {
     <SectionContent SectionName="@NavConstants.TopRight">
         <div class="d-flex flex-row-auto">
+            <label
+                class="form-check form-switch form-check-custom form-check-success form-check-solid px-2 me-2">
+                <input class="form-check-input" type="checkbox" @bind="@_request.IsTimeOut"/>
+                <span>
+                    Time-out
+                </span>
+            </label>
             <input @bind="DateRange" class="form-control form-control-sm w-200px mx-2" placeholder="Pick date range"
                    id="RangeDate"/>
             <button class="btn btn-sm btn-primary w-100" @onclick="GetData">Get Data</button>
@@ -90,6 +98,8 @@ else
                             </th>
                             <th>Date</th>
                             <th>No</th>
+                            <th>Ref</th>
+                            <th>Track Id</th>
                             <th>Status</th>
                             <th>Service Code</th>
                             <th>Entry Point</th>
@@ -106,6 +116,7 @@ else
                             <th>Extra Long</th>
                             <th>Over Limit</th>
                             <th>Excess Volume</th>
+                            <th>Total Time</th>
                             <th class="text-end">Actions</th>
                         </tr>
                         </thead>
@@ -131,6 +142,8 @@ else
                                 </td>
                                 <td>@t.item.CreatedOn.ToDmy()</td>
                                 <th>@t.item.ReferenceId</th>
+                                <th>@t.item.ReferenceId2</th>
+                                <th>@t.item.TrackIds</th>
                                 <th>@GetStatus(t.item.ShipmentStatus)</th>
                                 <td>@t.item.ServiceCode</td>
                                 <td>@t.item.EntryPoint</td>
@@ -147,6 +160,7 @@ else
                                 <td>@t.item.ExtraLongFee?.ToString("N2")</td>
                                 <td>@t.item.OverLimitFee?.ToString("N2")</td>
                                 <td>@t.item.ExcessVolumeFee?.ToString("N2")</td>
+                                <td>@t.item.TotalTime</td>
                                 <td>
                                     @if (t.item.ShipmentStatus == 0)
                                     {
@@ -219,7 +233,7 @@ else
 
     protected override void OnInitialized()
     {
-        DateRange = "".InitDateRange();
+        DateRange = "".InitDateRange(iEnd:-3);
         base.OnInitialized();
     }
 
@@ -292,9 +306,14 @@ else
         {
             Status = _request.Status,
             DateRange = _request.DateRange,
-            UserId = _request.UserId
+            UserId = _request.UserId,
+            IsTimeOut = _request.IsTimeOut
         });
         _items = _items.OrderByDescending(o => o.CreatedOn).ToList();
+        if (_request.IsTimeOut)
+        {
+            iState = 1;
+        }
         FilterBy();
     }
 
@@ -365,11 +384,11 @@ else
     {
         ShowHideLoading();
         var result = await LeUsService.GetLabel(lstCheckship, ShareUserInfo?.UserId);
-        ShowHideLoading(isShow: false, initTable: true);
         if (result.content.Length > 0)
         {
             await BlazorDownloadFile(result.code, result.fileType, result.content);
         }
+        ShowHideLoading(isShow: false, initTable: true);
     }
 
     private async Task CancelLabel()

@@ -21,7 +21,8 @@
                     property.SetColumnType("character varying(255)");
                 }
             }
-
+            // builder.HasDbFunction(typeof(PortalContext).GetMethod(nameof(GetRangeTime), new[] { typeof(double?) }))
+            //     .HasName("range_time_label");
             base.OnModelCreating(builder);
         }
         
@@ -30,7 +31,7 @@
         //     configurationBuilder.Properties<DateTime>()
         //         .HaveConversion<DateTimeToDateTimeUtc>();
         // }
-
+        // public static string GetRangeTime(double? totalTime) => throw new NotImplementedException();
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
         {
             foreach (var entry in ChangeTracker.Entries<IAuditableEntityNew>().ToList())

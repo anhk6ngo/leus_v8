@@ -16,8 +16,8 @@ internal class GetAllShipmentByRefQueryHandler(IUnitOfWork<Guid, PortalContext> 
         if (request.GetLabel)
         {
             return await unitOfWork.RepositoryNew<CShipment>().Entities
-                .Where(w => request.RefIds.Contains(w.ReferenceId!) && w.ShipmentStatus == 2 &&
-                            w.CreatedBy == request.UserId)
+                .Where(w => request.RefIds.Contains(w.ReferenceId!) &&
+                            w.CreatedBy == request.UserId && w.ShipmentStatus == 2)
                 .Select(s => new CShipment()
                 {
                     Id = s.Id,
@@ -30,7 +30,8 @@ internal class GetAllShipmentByRefQueryHandler(IUnitOfWork<Guid, PortalContext> 
         }
 
         return await unitOfWork.RepositoryNew<CShipment>().Entities
-            .Where(w => request.RefIds.Contains(w.ReferenceId!) && w.ShipmentStatus == 2 &&
-                        w.CreatedBy == request.UserId).ToListAsync(cancellationToken);
+            .Where(w => request.RefIds.Contains(w.ReferenceId!) &&
+                        w.CreatedBy == request.UserId && w.ShipmentStatus == 2)
+            .ToListAsync(cancellationToken);
     }
 }

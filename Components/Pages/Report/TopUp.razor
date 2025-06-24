@@ -1,5 +1,6 @@
 ﻿@page "/portal/report/top-up"
 @inject IRoleService RoleService
+@attribute [Authorize]
 @attribute [StreamRendering]
 <PageTitle>Top-up</PageTitle>
 <SectionContent SectionName="@NavConstants.TopLeft">

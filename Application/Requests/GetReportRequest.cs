@@ -9,4 +9,5 @@ public class GetReportRequest
     public int TypeExport { get; set; } = 0;
     public string? DateRange { get; set; }
     public string? UserId { get; set; }
+    public bool IsTimeOut { get; set; } = false;
 }

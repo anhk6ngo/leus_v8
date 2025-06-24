@@ -26,5 +26,8 @@ public class CShipmentReport
     public double? OverLimitFee { get; set; } = 0;
     public double? ExcessVolumeFee { get; set; } = 0;
     public int ZonePrice { get; set; }
+    public double TotalTime { get; set; } = 0;
+    public DateTime? CreateLabelDate { get; set; }
+    public DateTime? CancelLabelDate { get; set; }
     public DateTime CreatedOn { get; set; }
 }

@@ -22,6 +22,15 @@ internal class UpdateLabelShipmentCommandHandler(IUnitOfWork<Guid, PortalContext
                 await unitOfWork.RepositoryAgg<CHistoryLabel>().AddAsync(history);
             }
         }
+
+        if (command.Data is { Count: 0 })
+        {
+            if (command.History is { Count: > 0 })
+            {
+                await unitOfWork.Commit(cancellationToken);
+            }
+            return false;
+        }
         switch (command.Action)
         {
             case ActionCommandType.Edit:
@@ -34,8 +43,9 @@ internal class UpdateLabelShipmentCommandHandler(IUnitOfWork<Guid, PortalContext
                     if (command.Action == ActionCommandType.Edit)
                     {
                         item.ShipmentId = oFind.ShipmentId;
-                        item.CreateLabelDate = DateTime.UtcNow;
+                        item.CreateLabelDate = oFind.CreateLabelDate;
                         item.ShipmentStatus = 2;
+                        item.TotalTime = oFind.TotalTime;
                         item.Cost = oFind.Cost;
                         if (oFind.Labels is { Count: > 0 })
                         {

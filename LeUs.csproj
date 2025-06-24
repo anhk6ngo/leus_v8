@@ -27,4 +27,31 @@
       <ProjectReference Include="..\Libraries\SharedKernel\SharedKernel.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <AdditionalFiles Include="Components\Pages\Portal\Catalog\Country.razor" />
+      <AdditionalFiles Include="Components\Pages\Portal\Catalog\Customer.razor" />
+      <AdditionalFiles Include="Components\Pages\Portal\Catalog\Service.razor" />
+      <AdditionalFiles Include="Components\Pages\Portal\Catalog\StoreAddress.razor" />
+      <AdditionalFiles Include="Components\Pages\Portal\Data\CreateShipment.razor" />
+      <AdditionalFiles Include="Components\Pages\Portal\Data\Shipments.razor" />
+      <AdditionalFiles Include="Components\Pages\Portal\Data\TopUp.razor" />
+      <AdditionalFiles Include="Components\Pages\Portal\Data\UploadExcel.razor" />
+      <AdditionalFiles Include="Components\Pages\Portal\Identity\Role.razor" />
+      <AdditionalFiles Include="Components\Pages\Portal\Operation\ApproveTopUp.razor" />
+      <AdditionalFiles Include="Components\Pages\Portal\Operation\SellingPrice.razor" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="Components\Pages\Portal\Data\CreateShipment.razor" />
+      <_ContentIncludedByDefault Remove="Components\Pages\Portal\Data\Shipments.razor" />
+      <_ContentIncludedByDefault Remove="Components\Pages\Portal\Data\TopUp.razor" />
+      <_ContentIncludedByDefault Remove="Components\Pages\Portal\Data\UploadExcel.razor" />
+      <_ContentIncludedByDefault Remove="Components\Pages\Portal\Identity\Role.razor" />
+      <_ContentIncludedByDefault Remove="Components\Pages\Portal\Pages\Data\CreateShipment.razor" />
+      <_ContentIncludedByDefault Remove="Components\Pages\Portal\Pages\Data\Shipments.razor" />
+      <_ContentIncludedByDefault Remove="Components\Pages\Portal\Pages\Data\TopUp.razor" />
+      <_ContentIncludedByDefault Remove="Components\Pages\Portal\Pages\Data\UploadExcel.razor" />
+      <_ContentIncludedByDefault Remove="Components\Pages\Portal\Pages\Identity\Role.razor" />
+    </ItemGroup>
+
 </Project>

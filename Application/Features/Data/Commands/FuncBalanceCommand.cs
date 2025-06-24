@@ -11,20 +11,19 @@ internal class FuncBalanceCommandHandler(IUnitOfWork<Guid, PortalContext> unitOf
     public async Task<bool> Handle(FuncBalanceCommand request, CancellationToken cancellationToken)
     {
         var id = $"{request.Input.UserId}".ToGuid();
+        var dAmount = request.Input.Amount * (request.Input.Action == ActionCommandType.Add ? 1 : -1);
         if (request.Input.Action == ActionCommandType.GetData)
         {
-            //Check end-user balance
-            var oCheck = await unitOfWork.RepositoryAgg<UserBalance>().SingleAsync(w=>w.Id == id && w.Amount >= request.Input.Amount);
-            if (oCheck == null) return false;
-            //Reduce end-user balance
-            oCheck.Amount -= request.Input.Amount;
-            await unitOfWork.RepositoryAgg<UserBalance>().UpdateAsync(oCheck);
-            await unitOfWork.Commit(cancellationToken);
+            var blnCheck = await unitOfWork.RepositoryAgg<UserBalance>()
+                .Entities.AnyAsync(w=>w.Id == id && w.Amount >= request.Input.Amount, cancellationToken);
+            if (!blnCheck) return false;
+            await unitOfWork.RepositoryAgg<UserBalance>().Entities.Where(w => w.Id == id)
+                .ExecuteUpdateAsync(x => x.SetProperty(b => b.Amount, b=>b.Amount + dAmount),
+                    cancellationToken);
             return true;
         }
-        var dAmount = request.Input.Amount * (request.Input.Action == ActionCommandType.Add ? 1 : -1);
         await unitOfWork.RepositoryAgg<UserBalance>().Entities.Where(w => w.Id == id)
-            .ExecuteUpdateAsync(x => x.SetProperty(b => b.Amount, b => b.Amount + dAmount),
+            .ExecuteUpdateAsync(x => x.SetProperty(b => b.Amount, b=>b.Amount + dAmount),
                 cancellationToken);
         return true;
     }

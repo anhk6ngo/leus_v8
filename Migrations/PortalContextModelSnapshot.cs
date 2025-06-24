@@ -392,6 +392,10 @@ namespace LeUs.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ApiName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
                     b.Property<DateTime>("CratedOn")
                         .HasColumnType("timestamp with time zone");
 
@@ -404,6 +408,9 @@ namespace LeUs.Migrations
 
                     b.Property<string>("Response")
                         .HasColumnType("text");
+
+                    b.Property<bool>("Status")
+                        .HasColumnType("boolean");
 
                     b.HasKey("Id");
 
@@ -672,6 +679,9 @@ namespace LeUs.Migrations
                     b.Property<bool>("SyncGetLabel")
                         .HasColumnType("boolean");
 
+                    b.Property<double>("TotalTime")
+                        .HasColumnType("double precision");
+
                     b.Property<string>("TrackIds")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
@@ -695,9 +705,11 @@ namespace LeUs.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ReferenceId");
-
                     b.HasIndex(new[] { "IsActive", "CreateLabelDate", "CancelLabelDate" }, "IX_Shipment_LabelDateIndex");
+
+                    b.HasIndex(new[] { "ReferenceId", "CreatedBy" }, "IX_Shipment_RefUserIndex");
+
+                    b.HasIndex(new[] { "ReferenceId2", "CreatedBy", "TrackIds" }, "IX_Shipment_TrackingIndex");
 
                     b.HasIndex(new[] { "IsActive", "CreatedOn", "CreatedBy" }, "IX_Shipment_UserIndex");
 

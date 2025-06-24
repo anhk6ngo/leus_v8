@@ -24,6 +24,7 @@ public class AddEditShipmentResponse
     public double? ExcessVolumeFee { get; set; }
     [Description("The shipment label is returned by labelbase64")]
     public DownloadFileContent? Label { get; set; }
+    [Description("Tracking number from carrier")]
     public string? TrackingId { get; set; }
     public string? ServiceCode { get; set; }
 }

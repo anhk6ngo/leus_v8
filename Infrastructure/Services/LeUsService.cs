@@ -6,6 +6,7 @@ using Leus.Application.Features.Catalog.Queries;
 using Leus.Application.Features.Data.Commands;
 using LeUs.Application.Features.Data.Commands;
 using Leus.Application.Features.Data.Queries;
+using LeUs.Application.Features.Data.Queries;
 
 namespace LeUs.Infrastructure.Services;
 
@@ -14,6 +15,7 @@ public class LeUsService(
     IFirstMileService firstMileService,
     IUnitedBrideService unitedBrideService,
     IMediator mediator,
+    IAppCache cache,
     IHttpClientFactory clientFactory) : ILeUsService
 {
     public async Task<List<CResult<string>>> CreateShipment(List<CShipmentDto> shipments,
@@ -23,6 +25,32 @@ public class LeUsService(
         var results = new List<CResult<string>>();
         var oUps = new List<CShipment>();
         var oHis = new List<CHistoryLabel>();
+        var dAddAmount = 0.0;
+        var dBalance = 0.0;
+        //Calculate and check balance before generate label
+        var dTotal = shipments.Where(w=>w.Price > 0)
+            .Sum(item=>item.Price.PlusNumber(item.Remote)
+            .PlusNumber(item.ExtraLongFee).PlusNumber(item.OverLimitFee)
+            .PlusNumber(item.ExcessVolumeFee));
+        dBalance = await GetCacheBalance($"{userId}");
+        if (dBalance < dTotal)
+        {
+            results.Add(new CResult<string>()
+            {
+                Success = false,
+                ErrorMessage = "Balance is insufficient. Please top-up and try again",
+            });
+            return results;
+        }
+        UpdateCacheBalance(userId, dTotal * -1);
+        //reduce balance before generate label
+        var rqBalance = new BalanceRequest()
+        {
+            UserId = userId,
+            Amount = dTotal,
+            Action = ActionCommandType.Delete
+        };
+        await FuncBalance(rqBalance);
         foreach (var item in shipments)
         {
             var dAmount = item.Price.PlusNumber(item.Remote)
@@ -39,9 +67,10 @@ public class LeUsService(
                 continue;
             }
 
-            var oSer = services.FirstOrDefault(x => x.ServiceCode == item.ServiceCode1);
+            var oSer = services.FirstOrDefault(x => x.ServiceCode == item.ServiceCode);
             if (oSer == null)
             {
+                dAddAmount += dAmount;
                 results.Add(new CResult<string>
                 {
                     Success = false,
@@ -50,50 +79,44 @@ public class LeUsService(
                 });
                 continue;
             }
-            //Check balance and reduce amount before generate label
-            var rqBalance = new BalanceRequest()
-            {
-                UserId = userId,
-                Amount = dAmount,
-                Action = ActionCommandType.GetData
-            };
-            var blnCheck = await FuncBalance(rqBalance);
-            if (!blnCheck)
-            {
-                results.Add(new CResult<string>()
-                {
-                    Success = false,
-                    ErrorMessage = "Balance is insufficient. Please top-up and try again",
-                    RequestId = item.ReferenceId
-                });
-                break;
-            }
+            
             var newHis = new CHistoryLabel()
             {
                 ReferenceId = item.ReferenceId,
-                Request = item.ConvertObjectToString()
+                ApiName = oSer.ApiName,
             };
             var blnFailure = false;
             var sTrackingId = "";
+            var dStart = DateTime.UtcNow;
+            // if (item.ServiceCode1.NotIsNullOrEmpty())
+            // {
+            //     item.ServiceCode = item.ServiceCode1;
+            // }
             switch (oSer.ApiName)
             {
                 case ApiName.Gps:
                     var rqG = item.Adapt<GpsCreateShipmentRequest>();
                     var resG = await gpsService.CreateShipment(rqG);
-                    newHis.Response = resG.ConvertObjectToString();
                     if (resG.Success == true)
                     {
                         sTrackingId = resG.Data?.TrackingNo;
+                        var dTotalTime = (DateTime.UtcNow - dStart).TotalSeconds;
                         oUps.Add(new CShipment
                         {
                             Id = item.Id,
+                            CreateLabelDate = dStart,
                             ShipmentId = resG.Data?.ShipmentId,
                             Cost = resG.Data?.Fees?.Sum(s => s.Amount) ?? 0,
-                            TrackIds = resG.Data?.TrackingNo,
+                            TrackIds = sTrackingId,
+                            TotalTime = dTotalTime
                         });
+                        newHis.Response = $"{sTrackingId} - {dTotalTime}";
                     }
                     else
                     {
+                        newHis.Response = gpsService.LogContent;
+                        newHis.Request = resG.ConvertObjectToString();
+                        newHis.CratedOn = DateTime.UtcNow;
                         blnFailure = true;
                     }
                     results.Add(new CResult<string>()
@@ -107,21 +130,23 @@ public class LeUsService(
                 case ApiName.FirstMile:
                     var rqF = TransformHelper.ToFirstMile(item);
                     var resF = await firstMileService.CreateLabel(rqF);
-                    newHis.Response = resF.ConvertObjectToString();
                     if (resF.Errors is null or { Length: 0 })
                     {
                         var aLabels = resF.PackageData;
                         var newItem = new CShipment
                         {
                             Id = item.Id,
+                            CreateLabelDate = dStart,
                             Labels = aLabels.Select(s => new LabelDetail()
                             {
                                 Label = s.LabelImageBase64,
                                 TrackignNo = s.TrackingNumber
                             }).ToList(),
                             Cost = (double)aLabels.Sum(s => s.RateInfo.Cost),
-                            TrackIds = aLabels.Select(s => s.TrackingNumber).Aggregate((a, b) => $"{a},{b}")
+                            TrackIds = aLabels.Select(s => s.TrackingNumber).Aggregate((a, b) => $"{a},{b}"),
+                            TotalTime = (DateTime.UtcNow - dStart).TotalSeconds
                         };
+                        newHis.Response = newItem.TrackIds;
                         oUps.Add(newItem);
                         results.Add(new CResult<string>()
                         {
@@ -140,13 +165,13 @@ public class LeUsService(
                             RequestId = item.ReferenceId,
                             ErrorMessage = resF.Errors.Aggregate((a, b) => $"{a} {b}"),
                         });
+                        newHis.Response = resF.ConvertObjectToString();
+                        newHis.CratedOn = DateTime.UtcNow;
                     }
-
                     break;
                 case ApiName.UnitedBridge:
                     var rqU = TransformHelper.ToUnitedBridge(item);
                     var resU = await unitedBrideService.CreateLabel(rqU);
-                    newHis.Response = resU.ConvertObjectToString();
                     if (resU.zone > -1)
                     {
                         var newLabel = new LabelDetail()
@@ -163,15 +188,18 @@ public class LeUsService(
                             var bytes = ms.ToArray();
                             newLabel.Label = Convert.ToBase64String(bytes);
                         }
-
+                        newHis.Response = resU.tracking_number;
+                        var dTotalTime = (DateTime.UtcNow - dStart).TotalSeconds;
                         oUps.Add(new CShipment
                         {
                             Id = item.Id,
+                            CreateLabelDate = dStart,
                             Labels = [newLabel],
                             Cost = resU.rate?.total,
                             TrackIds = resU.tracking_number,
+                            TotalTime = dTotalTime
                         });
-                        blnFailure = true;
+                        
                         results.Add(new CResult<string>()
                         {
                             Success = true,
@@ -179,9 +207,18 @@ public class LeUsService(
                             RequestId = item.ReferenceId,
                             ErrorMessage = "The label is created",
                         });
+                        if (dTotalTime > 30)
+                        {
+                            newHis.Response += $"{resU.tracking_number} - {dTotalTime}";
+                            newHis.Request = rqU.ConvertObjectToString();
+                        }
                     }
                     else
                     {
+                        newHis.Response = resU.service;
+                        newHis.Request = rqU.ConvertObjectToString();
+                        newHis.CratedOn = DateTime.UtcNow;
+                        blnFailure = true;
                         results.Add(new CResult<string>()
                         {
                             Success = false,
@@ -191,26 +228,29 @@ public class LeUsService(
                     }
                     break;
             }
+            newHis.Status = blnFailure;
             oHis.Add(newHis);
             if (!blnFailure) continue;
             //Increase balance if generate label failure
-            rqBalance = new BalanceRequest()
-            {
-                UserId = userId,
-                Amount = dAmount,
-                Action = ActionCommandType.Add
-            };
-            await FuncBalance(rqBalance);
+            dAddAmount += dAmount;
         }
-
-        if (oUps is { Count: > 0 })
+        
+        await mediator.Send(new UpdateLabelShipmentCommand()
         {
-            await mediator.Send(new UpdateLabelShipmentCommand()
-            {
-                Data = oUps,
-                History = oHis
-            });
-        }
+            Data = oUps,
+            History = oHis
+        });
+
+        if (dAddAmount == 0.0) return results;
+        //Return amount for end-user
+        UpdateCacheBalance(userId, dAddAmount);
+        rqBalance = new BalanceRequest()
+        {
+            UserId = userId,
+            Amount = dAddAmount,
+            Action = ActionCommandType.Add
+        };
+        await FuncBalance(rqBalance);
         return results;
     }
 
@@ -240,39 +280,47 @@ public class LeUsService(
             result.ErrorMessage = "Service not found";
             return result;
         }
+        
         //Check balance and reduce amount before generate label
-        var rqBalance = new BalanceRequest()
-        {
-            UserId = userId,
-            Amount = dAmount,
-            Action = ActionCommandType.GetData
-        };
-        var blnCheck = await FuncBalance(rqBalance);
-        if (!blnCheck)
+        var dBalance = await GetCacheBalance($"{userId}");
+        if (dBalance < dAmount)
         {
             result.Success = false;
             result.ErrorMessage = "Balance is insufficient. Please top-up and try again";
             return result;
         }
+        UpdateCacheBalance(userId, dAmount * -1);
+        var rqBalance = new BalanceRequest()
+        {
+            UserId = userId,
+            Amount = dAmount,
+            Action = ActionCommandType.Delete
+        };
+        await FuncBalance(rqBalance);
         var blnFailure = false;
         var newHis = new CHistoryLabel()
         {
             ReferenceId = item.ReferenceId,
-            Request = item.ConvertObjectToString()
+            ApiName = oSer.ApiName
         };
         var sTrackingId = "";
+        var dStart = DateTime.UtcNow;
+        // if (item.ServiceCode1.NotIsNullOrEmpty())
+        // {
+        //     item.ServiceCode = item.ServiceCode1;
+        // }
         switch (oSer.ApiName)
         {
             case ApiName.Gps:
                 var rqG = item.Adapt<GpsCreateShipmentRequest>();
                 var resG = await gpsService.CreateShipment(rqG);
-                newHis.Response = resG.ConvertObjectToString();
                 if (resG.Success == true)
                 {
                     sTrackingId = resG.Data?.TrackingNo;
                     var newItem = new CShipment
                     {
                         Id = item.Id,
+                        CreateLabelDate = dStart,
                         ShipmentId = resG.Data?.ShipmentId,
                         Cost = resG.Data?.Fees?.Sum(s => s.Amount) ?? 0,
                         TrackIds = resG.Data?.TrackingNo,
@@ -282,6 +330,7 @@ public class LeUsService(
                     {
                         ShipmentId = newItem.ShipmentId
                     });
+                    newItem.TotalTime = (DateTime.UtcNow - dStart).TotalSeconds;
                     if (gpsResult is { Success: true, Data.Count: > 0 })
                     {
                         newItem.Labels ??= [];
@@ -301,14 +350,23 @@ public class LeUsService(
                                 });
                             }
 
-                            newItem.TrackIds += itemLabel.TrackingNo + ", ";
+                            newItem.TrackIds += itemLabel.TrackingNo + " ";
                         }
-                    }
-                    else
-                    {
-                        blnFailure = true;
+
+                        if (newItem.TrackIds.NotIsNullOrEmpty())
+                        {
+                            newItem.TrackIds = newItem.TrackIds.Trim();
+                        }
+                        newHis.Response = $"{sTrackingId} - {newItem.TotalTime}";
                     }
                     oUps.Add(newItem);
+                }
+                else
+                {
+                    blnFailure = true;
+                    newHis.Response = gpsService.LogContent;
+                    newHis.Request = rqG.ConvertObjectToString();
+                    newHis.CratedOn = DateTime.UtcNow;
                 }
                 result.Success = resG.Success;
                 result.TrackingId = sTrackingId;
@@ -317,21 +375,23 @@ public class LeUsService(
             case ApiName.FirstMile:
                 var rqF = TransformHelper.ToFirstMile(item);
                 var resF = await firstMileService.CreateLabel(rqF);
-                newHis.Response = resF.ConvertObjectToString();
                 if (resF.Errors is null or { Length: 0 })
                 {
                     var aLabels = resF.PackageData;
                     var newItem = new CShipment
                     {
                         Id = item.Id,
+                        CreateLabelDate = dStart,
                         Labels = aLabels.Select(s => new LabelDetail()
                         {
                             Label = s.LabelImageBase64,
                             TrackignNo = s.TrackingNumber
                         }).ToList(),
                         Cost = (double)aLabels.Sum(s => s.RateInfo.Cost),
-                        TrackIds = aLabels.Select(s => s.TrackingNumber).Aggregate((a, b) => $"{a},{b}")
+                        TrackIds = aLabels.Select(s => s.TrackingNumber).Aggregate((a, b) => $"{a},{b}"),
+                        TotalTime = (DateTime.UtcNow - dStart).TotalSeconds
                     };
+                    newHis.Response = newItem.TrackIds;
                     oUps.Add(newItem);
                     result.Success = true;
                     result.TrackingId = newItem.TrackIds;
@@ -339,16 +399,16 @@ public class LeUsService(
                 }
                 else
                 {
+                    newHis.Response = resF.ConvertObjectToString();
+                    newHis.CratedOn = DateTime.UtcNow;
                     blnFailure = true;
                     result.Success = false;
                     result.ErrorMessage = resF.Errors.Aggregate((a, b) => $"{a} {b}");
                 }
-
                 break;
             case ApiName.UnitedBridge:
                 var rqU = TransformHelper.ToUnitedBridge(item);
                 var resU = await unitedBrideService.CreateLabel(rqU);
-                newHis.Response = resU.ConvertObjectToString();
                 if (resU.zone > -1)
                 {
                     var newLabel = new LabelDetail()
@@ -365,31 +425,41 @@ public class LeUsService(
                         var bytes = ms.ToArray();
                         newLabel.Label = Convert.ToBase64String(bytes);
                     }
-
+                    newHis.Response = resU.tracking_number;
+                    var dTotalTime = (DateTime.UtcNow - dStart).TotalSeconds;
                     oUps.Add(new CShipment
                     {
                         Id = item.Id,
+                        CreateLabelDate = dStart,
                         Labels = [newLabel],
                         Cost = resU.rate?.total,
                         TrackIds = resU.tracking_number,
+                        TotalTime = dTotalTime
                     });
                     result.Success = true;
                     result.ErrorMessage = "The label is created";
                     result.TrackingId = resU.tracking_number;
+                    if (dTotalTime > 30)
+                    {
+                        newHis.Response = $"{resU.tracking_number} - {dTotalTime}";
+                        newHis.Request = rqU.ConvertObjectToString();
+                    }
                 }
                 else
                 {
+                    newHis.Response = resU.service;
+                    newHis.Request = rqU.ConvertObjectToString();
+                    newHis.CratedOn = DateTime.UtcNow;
                     blnFailure = true;
                     result.Success = false;
                     result.ErrorMessage = resU.service;
                 }
-
                 break;
         }
-
         if (blnFailure)
         {
             //Increase balance if generate label failure
+            UpdateCacheBalance(userId, dAmount);
             rqBalance = new BalanceRequest()
             {
                 UserId = userId,
@@ -398,18 +468,17 @@ public class LeUsService(
             };
             await FuncBalance(rqBalance);
         }
-        
+        newHis.Status = blnFailure;
         oHis.Add(newHis);
-        if (result.Success == false || oUps is { Count: 0 })
-        {
-            return result;
-        }
-
         await mediator.Send(new UpdateLabelShipmentCommand()
         {
             Data = oUps,
             History = oHis
         });
+        if (result.Success == false || oUps is { Count: 0 })
+        {
+            return result;
+        }
         result.Data = new DownloadFileContent();
         var lstLabels = oUps.SelectMany(s => s.Labels!).ToList().ToList();
         if (lstLabels.Count == 1)
@@ -444,41 +513,25 @@ public class LeUsService(
         var results = new List<CResult<string>>();
         var oUps = new List<CShipment>();
         var oHis = new List<CHistoryLabel>();
-        var shipments = await mediator.Send(new GetAllShipmentByRefQuery()
-        {
-            RefIds = input,
-            UserId = userId,
-            GetLabel = false
-        });
         var dAddAmount = 0.0;
-        foreach (var item in shipments)
+        foreach (var refId in input)
         {
-            var blnSuccess = false;
-            var dAmount = item.Price.PlusNumber(item.Remote)
-                .PlusNumber(item.ExtraLongFee).PlusNumber(item.OverLimitFee)
-                .PlusNumber(item.ExcessVolumeFee);
-            if (dAmount == 0)
+            //Get shipment và set status to void label
+            var item = await mediator.Send(new GetShipmentByRefQuery()
             {
-                results.Add(new CResult<string>()
-                {
-                    Success = false,
-                    ErrorMessage = "The shipment don't have price",
-                    RequestId = item.ReferenceId
-                });
-                continue;
-            }
-
-            if (item.ShipmentStatus != 2)
+                RefId = refId,
+                UserId = userId
+            });
+            if (item == null)
             {
                 results.Add(new CResult<string>()
                 {
                     Success = false,
                     ErrorMessage = "The shipment don't have label",
-                    RequestId = item.ReferenceId
+                    RequestId = refId
                 });
                 continue;
             }
-
             if (item.CreateLabelDate != null && item.CreateLabelDate < dDeadline)
             {
                 results.Add(new CResult<string>()
@@ -489,7 +542,11 @@ public class LeUsService(
                 });
                 continue;
             }
-
+            var blnSuccess = false;
+            var dAmount = item.Price.PlusNumber(item.Remote)
+                .PlusNumber(item.ExtraLongFee)
+                .PlusNumber(item.OverLimitFee)
+                .PlusNumber(item.ExcessVolumeFee);
             var apiName = item.ApiName1 ?? item.ApiName;
             var newHis = new CHistoryLabel()
             {
@@ -559,12 +616,21 @@ public class LeUsService(
             }
 
             oHis.Add(newHis);
-            if (!blnSuccess) continue;
+            if (!blnSuccess)
+            {
+                //Reset shipment status
+                await mediator.Send(new GetShipmentByRefQuery()
+                {
+                    Id = item.Id,
+                    ShipmentStatus = 2,
+                    UserId = userId
+                });
+                continue;
+            }
             dAddAmount += dAmount;
-            oUps.Add(item);
         }
 
-        if (oUps is { Count: 0 }) return results;
+        if (oHis is { Count: 0 }) return results;
         var rqBalance = new BalanceRequest()
         {
             UserId = userId,
@@ -622,9 +688,13 @@ public class LeUsService(
                                     });
                                 }
 
-                                item.TrackIds += itemLabel.TrackingNo + ", ";
+                                item.TrackIds += itemLabel.TrackingNo + " ";
                             }
 
+                            if (item.TrackIds.NotIsNullOrEmpty())
+                            {
+                                item.TrackIds = item.TrackIds.Trim();
+                            }
                             lstUpdate.Add(item);
                         }
                     }
@@ -763,7 +833,40 @@ public class LeUsService(
             default:
                 break;
         }
-
         return dRate;
+    }
+
+    private async Task<double> GetCacheBalance(string? userId)
+    {
+        var dBalance = 0.0;
+
+        var sKey = cache.Get<string>($"k_{userId}");
+        if (sKey.NotIsNullOrEmpty())
+        {
+            dBalance = cache.Get<double>(userId);
+        }
+        else
+        {
+            var oBalace = await mediator.Send(new GetBalanceByUserQuery()
+            {
+                UserId = userId
+            });
+            if (oBalace != null)
+            {
+                dBalance = oBalace.Amount;
+                
+            }
+            cache.Add($"k_{userId}", userId, TimeSpan.FromMinutes(1));
+            cache.Add(userId, dBalance, TimeSpan.FromMinutes(1));
+        }
+        return dBalance;
+    }
+
+    private void UpdateCacheBalance(string? userId, double newBalance)
+    {
+        var dRemain = cache.Get<double>($"{userId}");
+        dRemain += newBalance;
+        cache.Remove(userId);
+        cache.Add(userId, dRemain, TimeSpan.FromMinutes(1));
     }
 }

@@ -1,6 +1,7 @@
 ﻿@page "/portal/report/shipment"
 @using Leus.Application.Features.Catalog.Queries
 @attribute [Authorize]
+@attribute [StreamRendering]
 @inject IExcelService ExcelService
 <SectionContent SectionName="@NavConstants.TopLeft">
     <Breadcrumb Slash="true"></Breadcrumb>
@@ -22,6 +23,22 @@ else
 {
     <Card Title="List of Shipment">
         <ToolbarRight>
+            <div class="d-flex flex-stack">
+                <div class="form-check me-2">
+                    <input class="form-check-input" type="radio" value="0" checked="@(_request.TypeReport == 0)" id="flexState"
+                           name="rdoState" @onchange="() => _request.TypeReport = 0">
+                    <label class="form-check-label" for="flexState">
+                        Created
+                    </label>
+                </div>
+                <div class="form-check me-2">
+                    <input class="form-check-input" type="radio" checked="@(_request.TypeReport == 1)" value="1" id="flexState1"
+                           name="rdoState" @onchange="() => _request.TypeReport = 1">
+                    <label class="form-check-label" for="flexState1">
+                        Void
+                    </label>
+                </div>
+            </div>
             <label
                 class="form-check form-switch form-check-custom form-check-success form-check-solid px-2">
                 <input class="form-check-input" type="checkbox" @bind="@_request.Export"
@@ -53,7 +70,9 @@ else
                         <th>Weight</th>
                         <th>Zone</th>
                         <th>Tracking Id</th>
-
+                        <th>
+                            @(_request.TypeReport == 0 ? "Created" : "Void") Date
+                        </th>
                         @if (isAcc)
                         {
                             <th>Customer</th>
@@ -95,6 +114,16 @@ else
                             <td>@item.Weight @item.WeightUnit</td>
                             <td>@item.ZonePrice</td>
                             <td>@item.TrackIds</td>
+                            <td>
+                                @if (_request.TypeReport == 0)
+                                {
+                                    @item.CreateLabelDate.ToDmy("dd-MMM-yy HH:mm")
+                                }
+                                else
+                                {
+                                    @item.CancelLabelDate.ToDmy("dd-MMM-yy HH:mm");
+                                }
+                            </td>
                             @if (isAcc)
                             {
                                 <td>@_customers.FirstOrDefault(w => w.Id.ToString() == item.CustomerId)?.Name</td>
@@ -136,7 +165,7 @@ else
 
     protected override void OnInitialized()
     {
-        DateRange = "".InitDateRange();
+        DateRange = "".InitDateRange(iEnd:-2);
         base.OnInitialized();
     }
 
@@ -180,7 +209,8 @@ else
         _items = await Mediator.Send(new GetShipmentReportQuery()
         {
             DateRange = _request.DateRange,
-            UserId = _request.UserId
+            UserId = _request.UserId,
+            TypeReport = _request.TypeReport,
         });
         _items = _items.OrderByDescending(o => o.CreatedOn).ToList();
         IsLoading = false;

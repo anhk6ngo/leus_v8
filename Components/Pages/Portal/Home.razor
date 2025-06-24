@@ -1,6 +1,7 @@
 ﻿@page "/portal"
+@attribute [Authorize]
+@attribute [StreamRendering]
 @using Leus.Application.Features.Catalog.Queries
-@using LeUs.Application.Features.Data.Commands
 @using LeUs.Application.Features.Data.Queries
 @* @rendermode @(new InteractiveServerRenderMode(prerender:false)) *@
 @inject IRoleService RoleService
@@ -235,7 +236,7 @@
 
     protected override void OnInitialized()
     {
-        DateRange = "".InitDateRange();
+        DateRange = "".InitDateRange(iEnd:-3);
         IsLoading = true;
         _request.UserId = $"{ShareUserInfo?.UserId}";
         base.OnInitialized();
@@ -255,14 +256,10 @@
                     _customers = await Mediator.Send(new GetAllCustomerQuery());
                 }
             }
-            else
+            _balanceDto = await Mediator.Send(new GetBalanceByUserQuery()
             {
-                _balanceDto = await Mediator.Send(new GetBalanceByUserQuery()
-                {
-                    UserId = _request.UserId
-                });
-            }
-
+                UserId = _request.UserId
+            });
             await GetData();
         }
 

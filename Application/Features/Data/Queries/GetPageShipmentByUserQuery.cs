@@ -7,6 +7,7 @@ public class GetPageShipmentByUserQuery : IRequest<PagedResponseOffset<ShipmentD
     public int Status { get; set; } = -1;
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 25;
+    public bool IsTimeOut { get; set; } = false;
     public List<string> RefIds { get; set; } = [];
 }
 
@@ -43,7 +44,7 @@ internal class GetPageShipmentByUserQueryHandler(IUnitOfWork<Guid, PortalContext
             .ProjectToType<ShipmentDto>()
             .AsNoTracking()
             .ToListAsync(cancellationToken);
-        return new PagedResponseOffset<ShipmentDto>(data,
+            return new PagedResponseOffset<ShipmentDto>(data,
             request.PageNumber,
             request.PageSize,
             totalRecords);

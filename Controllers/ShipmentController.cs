@@ -7,7 +7,6 @@ using Leus.Application.Features.Data.Queries;
 using LeUs.Application.Features.Data.Queries;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
 using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 
 namespace LeUs.Controllers;
@@ -33,8 +32,15 @@ public class ShipmentController(
                 DateRange = request.DateRange,
                 Status = request.Status,
                 UserId = User.GetUserId(),
+                IsTimeOut = request.IsTimeOut,
                 RefIds = request.ReferenceId.NotIsNullOrEmpty()
                     ? $"{request.ReferenceId}".SplitExt(pattern: ",;\n\t -").ToList()
+                    : [],
+                Ref2Ids = request.ReferenceId2.NotIsNullOrEmpty()
+                    ? $"{request.ReferenceId2}".SplitExt(pattern: ",;\n\t -").ToList()
+                    : [],
+                TrackIds = request.TrackingId.NotIsNullOrEmpty()
+                    ? $"{request.TrackingId}".SplitExt(pattern: ",;\n\t -").ToList()
                     : [],
             });
             var cResults = results.Adapt<List<ShipmentDto>>();
@@ -57,7 +63,7 @@ public class ShipmentController(
     [EndpointSummary("Get shipments by paging")]
     public async Task<IHttpResult> GetPageData(GetShipmentRequest request)
     {
-        if (request.PageNumber <= 0 || request.PageSize <= 0)
+        if (request.PageNumber <= 0 || request.PageSize <= 0 || request.IsTimeOut)
         {
             var problemPage = new HttpValidationProblemDetails(new ConcurrentDictionary<string, string[]>())
             {
@@ -66,6 +72,10 @@ public class ShipmentController(
                 Detail = "One or more validation errors occurred.",
                 Instance = "api/shipment/generate-label",
             };
+            if (request.IsTimeOut)
+            {
+                problemPage.Errors.Add("Parameter", ["The feature not supported."]);
+            }
             if (request.PageNumber <= 0)
             {
                 problemPage.Errors.Add("Page number", ["The page number must be greater than zero."]);
@@ -75,7 +85,6 @@ public class ShipmentController(
             {
                 problemPage.Errors.Add("Page size", ["The page size must be greater than zero."]);
             }
-
             return Results.Problem(problemPage);
         }
 
@@ -410,7 +419,66 @@ public class ShipmentController(
         var data = await leUsService.GetTrack([$"{refId}"], User.GetUserId());
         return Ok(data);
     }
+    
+    [HttpPost("get-rate")]
+    [ProducesResponseType<Result<AddEditShipmentResponse>>(StatusCodes.Status200OK, "application/json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    [EndpointSummary("9. Get Price of Shipment")]
+    public async Task<IHttpResult> GetRatePost(ShipmentDto request)
+    {
+        var dConvert = new CShipmentDto();
+        request.Adapt(dConvert);
+        if (dConvert.ShipmentStatus != 0)
+        {
+            dConvert.ShipmentStatus = 0;
+        }
 
+        var valResult = await shipmentVal.ValidateAsync(dConvert);
+        if (valResult.IsValid)
+        {
+            var services = await _mediator!.Send(new GetAllServiceQuery());
+            var oFind = services.FirstOrDefault(w => w.ServiceCode == dConvert.ServiceCode);
+            if (oFind == null)
+            {
+                var problemServiceDetails = new HttpValidationProblemDetails(valResult.ToDictionary())
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Title = "Validation Failed",
+                    Detail = "Not found the service.",
+                    Instance = "api/shipment"
+                };
+                return Results.Problem(problemServiceDetails);
+            }
+
+            dConvert.ServiceCode = oFind.ServiceCode;
+            dConvert.ApiName = oFind.ApiName;
+            dConvert.ServiceId = $"{oFind.Id}";
+            dConvert.Weight = dConvert.Boxes?.Sum(s => s.Weight) ?? 0;
+            dConvert.CustomerId = await _mediator.Send(new GetAllCustomerByEmailQuery()
+            {
+                Email = $"{User.GetEmail()}"
+            });
+            var resultAddShipment = await _mediator!.Send(new AddEditShipmentCommand()
+            {
+                Request = new AddEditDataRequest<CShipmentDto>()
+                {
+                    Data = dConvert,
+                    Action = ActionCommandType.View
+                }
+            });
+            resultAddShipment.Data.ServiceCode = request.ServiceCode;
+            return Results.Ok(resultAddShipment);
+        }
+
+        var problemDetails = new HttpValidationProblemDetails(valResult.ToDictionary())
+        {
+            Status = StatusCodes.Status400BadRequest,
+            Title = "Validation Failed",
+            Detail = "One or more validation errors occurred.",
+            Instance = "api/shipment"
+        };
+        return Results.Problem(problemDetails);
+    }
     [HttpGet("stores")]
     [ProducesResponseType<List<CStoreAddressDto>>(StatusCodes.Status200OK, "application/json")]
     [EndpointSummary("Get Store")]

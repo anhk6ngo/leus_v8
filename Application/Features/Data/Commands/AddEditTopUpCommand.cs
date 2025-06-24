@@ -36,16 +36,19 @@ internal class AddEditTopUpCommandHandler(IUnitOfWork<Guid, PortalContext> unitO
                     }
                     else
                     {
+                        var dUp =oNewItem.ApproveAmount ?? 0;
                         if (oNewItem.IsDeposit)
                         {
-                            oFind.DepositAmount += oNewItem.ApproveAmount ?? 0;
+                            await unitOfWork.RepositoryAgg<UserBalance>().Entities.Where(w => w.Id == oFind.Id)
+                                .ExecuteUpdateAsync(x => x.SetProperty(b => b.DepositAmount, b=>b.DepositAmount + dUp),
+                                    cancellationToken);
                         }
                         else
                         {
-                            oFind.Amount += oNewItem.ApproveAmount ?? 0;
+                            await unitOfWork.RepositoryAgg<UserBalance>().Entities.Where(w => w.Id == oFind.Id)
+                                .ExecuteUpdateAsync(x => x.SetProperty(b => b.Amount, b=>b.Amount + dUp),
+                                    cancellationToken);
                         }
-
-                        await unitOfWork.RepositoryAgg<UserBalance>().UpdateAsync(oFind);
                     }
                 }
 
@@ -80,15 +83,19 @@ internal class AddEditTopUpCommandHandler(IUnitOfWork<Guid, PortalContext> unitO
                         }
                         else
                         {
+                            var dUp =currentItem.ApproveAmount ?? 0;
                             if (currentItem.IsDeposit)
                             {
-                                oFind.DepositAmount += currentItem.ApproveAmount ?? 0;
+                                await unitOfWork.RepositoryAgg<UserBalance>().Entities.Where(w => w.Id == oFind.Id)
+                                    .ExecuteUpdateAsync(x => x.SetProperty(b => b.DepositAmount, b=>b.DepositAmount + dUp),
+                                        cancellationToken);
                             }
                             else
                             {
-                                oFind.Amount += currentItem.ApproveAmount ?? 0;
+                                await unitOfWork.RepositoryAgg<UserBalance>().Entities.Where(w => w.Id == oFind.Id)
+                                    .ExecuteUpdateAsync(x => x.SetProperty(b => b.Amount, b=>b.Amount + dUp),
+                                        cancellationToken);
                             }
-                            await unitOfWork.RepositoryAgg<UserBalance>().UpdateAsync(oFind);
                         }
                     }
 

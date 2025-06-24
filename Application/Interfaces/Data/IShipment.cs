@@ -14,6 +14,7 @@ public interface IShipment: IBaseShipment
     public double? Cost { get; set; }
     public string? ApiName { get; set; }
     public int ZonePrice { get; set; }
+    public double TotalTime { get; set; } 
 }
 
 public interface IBaseShipment

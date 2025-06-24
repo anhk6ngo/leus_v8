@@ -4,6 +4,7 @@ namespace LeUs.Application.Interfaces;
 
 public interface IGpsService: IManager
 {
+    public string? LogContent { get; set; }
     public Task<CResult<List<GpsDataService>>> GetServices();
     public Task<CResult<List<GpsEntryPoint>>> GetEntryPoints();
     public Task<CResult<List<GpsSensitiveAttribute>>> GetSensitiveAttributes();
