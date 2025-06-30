@@ -72,7 +72,6 @@ internal class GetAllShipmentByUserQueryHandler(IUnitOfWork<Guid, PortalContext>
         {
             result = result.Where(w => w.TotalTime >= 20).ToList();
         }
-
         return result;
     }
 }

@@ -20,8 +20,8 @@ internal class GetSumShipmentByUserQueryHandler(IUnitOfWork<Guid, PortalContext>
             oFilter = oFilter.And(w => w.CreatedBy == request.Input.UserId);
         }
         var result = await unitOfWork.RepositoryNew<CShipment>().Entities
-            .Where(oFilter)
             .AsNoTracking()
+            .Where(oFilter)
             .Select(s => new SumShipmentResponse
             {
                 TransDate = new DateTime(s.CreatedOn.Year, s.CreatedOn.Month, s.CreatedOn.Day),
