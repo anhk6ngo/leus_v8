@@ -95,7 +95,7 @@ else
                     </tr>
                     </thead>
                     <tbody>
-                    @foreach (var item in _items)
+                    @foreach (var item in _items.Take(500).ToList())
                     {
                         <tr>
 
@@ -206,6 +206,7 @@ else
         IsLoading = true;
         StateHasChanged();
         _request.DateRange = DateRange;
+        _request.Export = false;
         _items = await Mediator.Send(new GetShipmentReportQuery()
         {
             DateRange = _request.DateRange,

@@ -9,6 +9,7 @@ public interface IGpsService: IManager
     public Task<CResult<List<GpsEntryPoint>>> GetEntryPoints();
     public Task<CResult<List<GpsSensitiveAttribute>>> GetSensitiveAttributes();
     public Task<CResult<List<GpsRateResponse>>> GetRates(GpsRateRequest input);
+    //public Task<string> GetBalance();
     public Task<CResult<object>> GetAbnormal(GpsAbnormalRequest input);
     public Task<CResult<GpsTrackResponse>> Tracking(GpsTrackRequest input);
     public Task<CResult<List<string>>> GetTrackingNo(GpsTrackRequest input);

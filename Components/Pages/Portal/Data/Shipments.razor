@@ -90,12 +90,17 @@ else
                            id="@UiConstants.TableId">
                         <thead>
                         <tr class="fw-semibold fs-6 text-gray-800 border-bottom-2 border-gray-200">
-                            <th>Select All
-                                <label class="form-check form-check-custom form-check-solid form-check-sm ms-2">
-                                    <input type="checkbox" class="form-check-input border border-danger"
-                                           @onchange="SetSelect"/>
-                                </label>
+                            <th class="w-10px pe-2">
+                                <div class="form-check form-check-sm form-check-custom form-check-solid me-3">
+                                    <input class="form-check-input" type="checkbox" data-kt-check="true" data-kt-check-target="#@UiConstants.TableId .form-check-input" value="1" />
+                                </div>
                             </th>
+                            @* <th>Select All *@
+                            @*     <label class="form-check form-check-custom form-check-solid form-check-sm ms-2"> *@
+                            @*         <input type="checkbox" class="form-check-input border border-danger" @bind="blnAll" *@
+                            @*                @bind:after="SetSelect"/> *@
+                            @*     </label> *@
+                            @* </th> *@
                             <th>Date</th>
                             <th>No</th>
                             <th>Ref</th>
@@ -124,21 +129,26 @@ else
                         @foreach (var t in _itemsFilter!.WithIndex())
                         {
                             <tr>
+                                @* <td> *@
+                                @*     <label class="form-check form-check-custom form-check-solid form-check-sm me-1"> *@
+                                @*         @if (lstCheckship.Contains($"{t.item.ReferenceId}")) *@
+                                @*         { *@
+                                @*             <input @key="@($"{t.item.Id}_1")" type="checkbox" *@
+                                @*                    checked class="form-check-input border border-danger" *@
+                                @*                    @onchange="(arg) => CheckOrder(t.item.ReferenceId, arg)"/> *@
+                                @*         } *@
+                                @*         else *@
+                                @*         { *@
+                                @*             <input @key="@($"{t.item.Id}_2")" type="checkbox" *@
+                                @*                    class="form-check-input border border-danger" *@
+                                @*                    @onchange="(arg) => CheckOrder(t.item.ReferenceId, arg)"/> *@
+                                @*         } *@
+                                @*     </label> *@
+                                @* </td> *@
                                 <td>
-                                    <label class="form-check form-check-custom form-check-solid form-check-sm me-1">
-                                        @if (lstCheckship.Contains($"{t.item.ReferenceId}"))
-                                        {
-                                            <input @key="@($"{t.item.Id}_1")" type="checkbox"
-                                                   checked class="form-check-input border border-danger"
-                                                   @onchange="(arg) => CheckOrder(t.item.ReferenceId, arg)"/>
-                                        }
-                                        else
-                                        {
-                                            <input @key="@($"{t.item.Id}_2")" type="checkbox"
-                                                   class="form-check-input border border-danger"
-                                                   @onchange="(arg) => CheckOrder(t.item.ReferenceId, arg)"/>
-                                        }
-                                    </label>
+                                    <div class="form-check form-check-sm form-check-custom form-check-solid">
+                                        <input class="form-check-input select-shipment-item" type="checkbox" value="1" reference-id="@t.item.ReferenceId" />
+                                    </div>
                                 </td>
                                 <td>@t.item.CreatedOn.ToDmy()</td>
                                 <th>@t.item.ReferenceId</th>
@@ -224,6 +234,7 @@ else
     private int iAction { get; set; } = 0;
     private string Title { get; set; } = "Add new";
     private bool ShowEdit { get; set; } = false;
+    private bool blnAll { get; set; } = false;
     private int iState = 0;
     [CascadingParameter] private UserInfo? ShareUserInfo { get; set; }
 
@@ -319,6 +330,7 @@ else
 
     private void FilterBy()
     {
+        lstCheckship = [];
         _itemsFilter = iState == 0 ? _items?.Where(w => w.ShipmentStatus < 2).ToList() : _items?.Where(w => w.ShipmentStatus == (iState + 1)).ToList();
         ShowHideLoading(isShow: false, initTable: true);
     }
@@ -337,16 +349,15 @@ else
         }
     }
 
-    private void SetSelect(ChangeEventArgs obj)
+    private void SetSelect()
     {
-        var blnCheck = Convert.ToBoolean(obj.Value);
         if (_items is { Count: 0 })
         {
             lstCheckship = [];
             return;
         }
 
-        lstCheckship = blnCheck ? _items!.Select(s => $"{s.ReferenceId}").ToList() : [];
+        lstCheckship = blnAll ? _items!.Select(s => $"{s.ReferenceId}").ToList() : [];
     }
 
     private string GetStatus(int status)
@@ -362,10 +373,12 @@ else
 
     private async Task GenerateLabel()
     {
-        var oInput = _items?.Where(w => w is { ShipmentStatus: 0, Price: > 0 } && lstCheckship.Contains($"{w.ReferenceId}")).ToList();
-        if (oInput is { Count: 0 }) return;
+        var selectRefId = await JsRuntime.InvokeAsync<string[]>("GetCheckBoxAtt","select-shipment-item", "reference-id");
+        if (selectRefId.Length == 0) return;
+        var iConfirm = await Confirm($"Do you want to generate these label? <p>Total shipment:</p><p>{selectRefId.Length}</p>");
+        if (iConfirm == false) return;
         ShowHideLoading();
-        _labelResults = await LeUsService.CreateShipment(oInput!, ShareUserInfo?.UserId);
+        _labelResults = await LeUsService.CreateShipment(selectRefId.ToList(), ShareUserInfo?.UserId);
         var lId = _labelResults.Where(w => w.Success == true).Select(s => s.RequestId).ToList();
         var oUps = _items?.Where(w => lId.Contains(w.ReferenceId)).ToList();
         if (oUps is { Count: > 0 })
@@ -375,15 +388,16 @@ else
                 cUp.ShipmentStatus = 2;
             }
         }
-
         ShowHideLoading(isShow: false, initTable: true);
         await ToggleModal();
     }
 
     private async Task GetLabel()
     {
+        var selectRefId = await JsRuntime.InvokeAsync<string[]>("GetCheckBoxAtt","select-shipment-item", "reference-id");
+        if (selectRefId.Length == 0) return;
         ShowHideLoading();
-        var result = await LeUsService.GetLabel(lstCheckship, ShareUserInfo?.UserId);
+        var result = await LeUsService.GetLabel(selectRefId.ToList(), ShareUserInfo?.UserId);
         if (result.content.Length > 0)
         {
             await BlazorDownloadFile(result.code, result.fileType, result.content);
@@ -393,10 +407,13 @@ else
 
     private async Task CancelLabel()
     {
-        var iConfirm = await Confirm("Do you want to cancel these label?");
+        var selectRefId = await JsRuntime.InvokeAsync<string[]>("GetCheckBoxAtt","select-shipment-item", "reference-id");
+        if (selectRefId.Length == 0) return;
+        var sRefId = selectRefId.Aggregate((a, b) => $"{a}, {b}");
+        var iConfirm = await Confirm($"Do you want to cancel these label? <p>This is a list of reference:</p><p>{sRefId}</p>");
         if (iConfirm == false) return;
         ShowHideLoading();
-        _labelResults = await LeUsService.CancelShipment(lstCheckship, ShareUserInfo?.UserId);
+        _labelResults = await LeUsService.CancelShipment(selectRefId.ToList(), ShareUserInfo?.UserId);
         ShowHideLoading(isShow: false, initTable: true);
         await ToggleModal();
     }

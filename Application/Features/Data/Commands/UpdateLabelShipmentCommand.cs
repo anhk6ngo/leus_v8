@@ -29,11 +29,14 @@ internal class UpdateLabelShipmentCommandHandler(IUnitOfWork<Guid, PortalContext
             {
                 await unitOfWork.Commit(cancellationToken);
             }
+
             return false;
         }
+
         switch (command.Action)
         {
             case ActionCommandType.Edit:
+            case ActionCommandType.UpdateLabel:
                 var oIds = command.Data.Select(x => x.Id).ToList();
                 var oUps = unitOfWork.RepositoryNew<CShipment>().Entities.Where(w => oIds.Contains(w.Id)).ToList();
                 foreach (var item in oUps)
@@ -47,6 +50,7 @@ internal class UpdateLabelShipmentCommandHandler(IUnitOfWork<Guid, PortalContext
                         item.ShipmentStatus = 2;
                         item.TotalTime = oFind.TotalTime;
                         item.Cost = oFind.Cost;
+                        item.Remote = oFind.Remote;
                         if (oFind.Labels is { Count: > 0 })
                         {
                             item.Labels = oFind.Labels;
@@ -75,7 +79,6 @@ internal class UpdateLabelShipmentCommandHandler(IUnitOfWork<Guid, PortalContext
                 await unitOfWork.Commit(cancellationToken);
                 break;
         }
-        
         return true;
     }
 }

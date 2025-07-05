@@ -14,15 +14,26 @@ internal class GetShipmentByRefQueryHandler(IUnitOfWork<Guid, PortalContext> uni
     public async Task<CShipment?> Handle(GetShipmentByRefQuery request,
         CancellationToken cancellationToken)
     {
-        if (request.ShipmentStatus == 2)
+        switch (request.ShipmentStatus)
         {
-            DateTime? dReset = null;
-            await unitOfWork.RepositoryNew<CShipment>().Entities.Where(w => w.Id == request.Id)
-                .ExecuteUpdateAsync(x => x.SetProperty(b => b.ShipmentStatus, 2)
-                        .SetProperty(b => b.CancelLabelDate, dReset),
-                    cancellationToken);
-            return null;
+            case -1:
+            {
+                var oShipmentLabel = await unitOfWork.RepositoryNew<CShipment>().Entities
+                    .FirstOrDefaultAsync(w => w.ReferenceId == request.RefId && w.CreatedBy == request.UserId
+                                                                             && w.ShipmentStatus == 0, cancellationToken);
+                return oShipmentLabel;
+            }
+            case 2:
+            {
+                DateTime? dReset = null;
+                await unitOfWork.RepositoryNew<CShipment>().Entities.Where(w => w.Id == request.Id)
+                    .ExecuteUpdateAsync(x => x.SetProperty(b => b.ShipmentStatus, 2)
+                            .SetProperty(b => b.CancelLabelDate, dReset),
+                        cancellationToken);
+                return null;
+            }
         }
+
         var oShipment = await unitOfWork.RepositoryNew<CShipment>().Entities
             .AsNoTracking()
             .FirstOrDefaultAsync(w => w.ReferenceId == request.RefId && w.CreatedBy == request.UserId

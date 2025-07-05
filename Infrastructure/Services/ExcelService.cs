@@ -292,6 +292,7 @@ public class ExcelService(
             ws.Cells[$"V{iRow}"].Value = "Extra Long";
             ws.Cells[$"W{iRow}"].Value = "Over Limit";
             ws.Cells[$"X{iRow}"].Value = "Excess Volume";
+            ws.Cells[$"Y{iRow}"].Value = "Void Date";
         }
         else
         {
@@ -300,6 +301,7 @@ public class ExcelService(
             ws.Cells[$"T{iRow}"].Value = "Extra Long";
             ws.Cells[$"U{iRow}"].Value = "Over Limit";
             ws.Cells[$"V{iRow}"].Value = "Excess Volume";
+            ws.Cells[$"W{iRow}"].Value = "Void Date";
         }
 
         iRow = 2;
@@ -343,6 +345,7 @@ public class ExcelService(
                 ws.Cells[$"V{iRow}"].Value = item.ExtraLongFee ?? 0;
                 ws.Cells[$"W{iRow}"].Value = item.OverLimitFee ?? 0;
                 ws.Cells[$"X{iRow}"].Value = item.ExcessVolumeFee ?? 0;
+                ws.Cells[$"Y{iRow}"].Value = item.CancelLabelDate.ToDmy();
             }
             else
             {
@@ -351,6 +354,7 @@ public class ExcelService(
                 ws.Cells[$"T{iRow}"].Value = item.ExtraLongFee ?? 0;
                 ws.Cells[$"U{iRow}"].Value = item.OverLimitFee ?? 0;
                 ws.Cells[$"V{iRow}"].Value = item.ExcessVolumeFee ?? 0;
+                ws.Cells[$"W{iRow}"].Value = item.CancelLabelDate.ToDmy();
             }
 
             iRow++;

@@ -18,13 +18,13 @@ internal class AddEditShipmentCommandHandler(
         CancellationToken cancellationToken)
     {
         var response = new AddEditShipmentResponse();
-        var dCost = 0.0;
-        if (command.Request.Data!.ApiName == ApiName.FirstMile)
-        {
-            dCost = await leUsService.GetRate(command.Request.Data);
-        }
+        // var dCost = 0.0;
+        // if (command.Request.Data!.ApiName == ApiName.FirstMile)
+        // {
+        //     dCost = await leUsService.GetRate(command.Request.Data);
+        // }
 
-        command.Request.Data.CalOverSizeFee();
+        command.Request.Data?.CalOverSizeFee();
         switch (command.Request.Action)
         {
             case ActionCommandType.Add:
@@ -58,10 +58,10 @@ internal class AddEditShipmentCommandHandler(
                     oNewItem.PriceCode = priceResponse.PriceCode;
                     oNewItem.ChargeWeight = priceResponse.ChargeWeight;
 
-                    if (dCost > oNewItem.Price)
-                    {
-                        oNewItem.Remote = ((dCost * 1.05 - oNewItem.Price) ?? 0).ToRound(2);
-                    }
+                    // if (dCost > oNewItem.Price)
+                    // {
+                    //     oNewItem.Remote = ((dCost * 1.05 - oNewItem.Price) ?? 0).ToRound(2);
+                    // }
 
                     oNewItem.ExcessVolumeFee = priceResponse.ExcessVolumeFee;
                 }
@@ -136,22 +136,21 @@ internal class AddEditShipmentCommandHandler(
                     currentItem.ExcessVolumeFee = priceResponse.ExcessVolumeFee;
                     currentItem.ServiceCode1 = priceResponse.ServiceCode ?? currentItem.ServiceCode;
                     currentItem.ApiName1 = priceResponse.ApiName ?? currentItem.ApiName;
-                    if (currentItem is { ChargeWeight: > 0, Price: > 0 })
-                    {
-                        if (dCost > currentItem.Price)
-                        {
-                            currentItem.Remote = ((dCost * 1.05 - currentItem.Price) ?? 0).ToRound(2);
-                        }
-                        else
-                        {
-                            currentItem.Remote = 0;
-                        }
-                    }
-                    else
-                    {
-                        currentItem.Remote = 0;
-                    }
-
+                    // if (currentItem is { ChargeWeight: > 0, Price: > 0 })
+                    // {
+                    //     if (dCost > currentItem.Price)
+                    //     {
+                    //         currentItem.Remote = ((dCost * 1.05 - currentItem.Price) ?? 0).ToRound(2);
+                    //     }
+                    //     else
+                    //     {
+                    //         currentItem.Remote = 0;
+                    //     }
+                    // }
+                    // else
+                    // {
+                    //     currentItem.Remote = 0;
+                    // }
                     await unitOfWork.RepositoryNew<CShipment>().UpdateAsync(currentItem);
                     await unitOfWork.Commit(cancellationToken);
                     currentItem.Adapt(response);
@@ -160,7 +159,6 @@ internal class AddEditShipmentCommandHandler(
 
                 break;
         }
-
         return await Result<AddEditShipmentResponse>.FailAsync("Not found the item");
     }
 }

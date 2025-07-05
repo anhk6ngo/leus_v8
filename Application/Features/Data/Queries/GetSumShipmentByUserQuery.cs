@@ -5,7 +5,7 @@ public class GetSumShipmentByUserQuery : IRequest<List<SumShipmentResponse>>
     public GetReportRequest Input { get; set; } = null!;
 }
 
-internal class GetSumShipmentByUserQueryHandler(IUnitOfWork<Guid, PortalContext> unitOfWork)
+internal class GetSumShipmentByUserQueryHandler(PortalContext context)
     : IRequestHandler<GetSumShipmentByUserQuery, List<SumShipmentResponse>>
 {
     public async Task<List<SumShipmentResponse>> Handle(GetSumShipmentByUserQuery request,
@@ -19,8 +19,7 @@ internal class GetSumShipmentByUserQueryHandler(IUnitOfWork<Guid, PortalContext>
         {
             oFilter = oFilter.And(w => w.CreatedBy == request.Input.UserId);
         }
-        var result = await unitOfWork.RepositoryNew<CShipment>().Entities
-            .AsNoTracking()
+        var result = await context.Set<CShipment>().AsNoTracking()
             .Where(oFilter)
             .Select(s => new SumShipmentResponse
             {

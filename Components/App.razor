@@ -618,6 +618,10 @@
         let chart = new ApexCharts(element, options);
         chart.render();
     }
+    window.GetCheckBoxAtt = (t,n) => {
+        return Array.from(document.querySelectorAll('.' + t + ':checked'))
+            .map(cb => cb.getAttribute(n));
+    }
 </script>
 <Routes @rendermode="RenderModeForPage"/>
 <script src="plugins/global/plugins.bundle.js"></script>

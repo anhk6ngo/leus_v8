@@ -45,6 +45,15 @@ public class GpsService(IOptions<ApiSetting> settings, IHttpClientFactory client
         return sDataResponse.ToObject<CResult<List<GpsRateResponse>>>();
     }
 
+    // public async Task<string> GetBalance()
+    // {
+    //     var client = GenerateClient("", "tms.balance.query");
+    //     var sData = new StringContent("", Encoding.UTF8, "text/plain");
+    //     using var httpResponse = await client.PostAsync("", sData);
+    //     var sDataResponse = await httpResponse.Content.ReadAsStringAsync();
+    //     return sDataResponse;
+    // }
+
     public async Task<CResult<object>> GetAbnormal(GpsAbnormalRequest input)
     {
         var sObject = input.ConvertObjectToString(false);

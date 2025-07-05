@@ -372,26 +372,25 @@ public class ShipmentController(
         }
 
         var userId = User.GetUserId();
-        var lstShipments = await _mediator!.Send(new GetAllShipmentByUserQuery()
-        {
-            RefIds = request,
-            UserId = userId,
-            Status = 0
-        });
-        if (lstShipments is { Count: 0 })
-        {
-            var problemDetails = new HttpValidationProblemDetails(new ConcurrentDictionary<string, string[]>())
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Failed",
-                Detail = "One or more validation errors occurred.",
-                Instance = "api/shipment/generate-label",
-            };
-            problemDetails.Errors.Add("RefIds", ["Not found the shipment"]);
-            return Results.Problem(problemDetails);
-        }
-
-        var result = await leUsService.CreateShipment(lstShipments, userId);
+        // var lstShipments = await _mediator!.Send(new GetAllShipmentByUserQuery()
+        // {
+        //     RefIds = request,
+        //     UserId = userId,
+        //     Status = 0
+        // });
+        // if (lstShipments is { Count: 0 })
+        // {
+        //     var problemDetails = new HttpValidationProblemDetails(new ConcurrentDictionary<string, string[]>())
+        //     {
+        //         Status = StatusCodes.Status400BadRequest,
+        //         Title = "Validation Failed",
+        //         Detail = "One or more validation errors occurred.",
+        //         Instance = "api/shipment/generate-label",
+        //     };
+        //     problemDetails.Errors.Add("RefIds", ["Not found the shipment"]);
+        //     return Results.Problem(problemDetails);
+        // }
+        var result = await leUsService.CreateShipment(request, userId);
         return Results.Ok(result);
     }
 
