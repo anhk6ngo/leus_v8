@@ -15,3 +15,7 @@ public class LabelDetail
     public string? TrackignNo { get; set; }
 }
 
+public class LabelDetailExt : LabelDetail
+{
+    public string? Ref2 { get; set; }
+}

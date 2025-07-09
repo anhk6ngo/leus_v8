@@ -5,17 +5,19 @@ public class GetBalanceByUserQuery : IRequest<UserBalanceDto?>
     public string? UserId { get; set; }
 }
 
-internal class GetBalanceByUserQueryHandler(IUnitOfWork<Guid, PortalContext> unitOfWork)
+internal class GetBalanceByUserQueryHandler(PortalContext context)
     : IRequestHandler<GetBalanceByUserQuery, UserBalanceDto?>
 {
     public async Task<UserBalanceDto?> Handle(GetBalanceByUserQuery request,
         CancellationToken cancellationToken)
     {
         var id = $"{request.UserId}".ToGuid();
-        var result = await unitOfWork.RepositoryAgg<UserBalance>().Entities
-            .AsNoTracking()
-            .ProjectToType<UserBalanceDto>()
-            .FirstOrDefaultAsync(w => w.Id == id, cancellationToken);
-        return result ?? new UserBalanceDto();
+        if(id == Guid.Empty) return new UserBalanceDto();
+        var result = await _getBalanceByUserId(context, id);
+        return result == null ? new UserBalanceDto() : result.Adapt<UserBalanceDto>();
     }
+    
+    private static readonly Func<PortalContext, Guid, Task<UserBalance?>> _getBalanceByUserId =
+        EF.CompileAsyncQuery((PortalContext context, Guid id) =>
+            context.Set<UserBalance>().AsNoTracking().FirstOrDefault(n => n.Id == id));
 }

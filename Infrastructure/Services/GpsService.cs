@@ -90,8 +90,8 @@ public class GpsService(IOptions<ApiSetting> settings, IHttpClientFactory client
         var client =GenerateClient(sObject, "tms.shipment.getLabel");
         var sData = new StringContent(sObject, Encoding.UTF8, "text/plain");
         using var httpResponse = await client.PostAsync("", sData);
-        var sDataResponse = await httpResponse.Content.ReadAsStringAsync();
-        return sDataResponse.ToObject<CResult<List<GpsLabelResponse>>>();
+        LogContent = await httpResponse.Content.ReadAsStringAsync();
+        return LogContent.ToObject<CResult<List<GpsLabelResponse>>>();
     }
 
     public async Task<CResult<object>> CancelShipment(GpsTrackRequest input)

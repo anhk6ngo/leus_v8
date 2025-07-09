@@ -25,6 +25,8 @@ internal class GetAllShipmentByRefQueryHandler(IUnitOfWork<Guid, PortalContext> 
                     ApiName1 = s.ApiName1,
                     Labels = s.Labels,
                     ShipmentId = s.ShipmentId,
+                    ReferenceId2 = s.ReferenceId2,
+                    ServiceCode = s.ServiceCode,
                     TrackIds = s.TrackIds,
                 }).AsNoTracking().ToListAsync(cancellationToken);
         }

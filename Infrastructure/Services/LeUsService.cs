@@ -315,6 +315,7 @@ public class LeUsService(
                 });
                 continue;
             }
+
             var item = itemSource.Adapt<CShipmentDto>();
 
             var dAmount = item.Price.PlusNumber(item.Remote)
@@ -356,6 +357,7 @@ public class LeUsService(
                 });
                 return results;
             }
+
             var rqChangeStatus = new UpdateShipmentStatusCommand()
             {
                 Id = itemSource.Id
@@ -397,6 +399,7 @@ public class LeUsService(
                         itemSource.TrackIds = sTrackingId;
                         itemSource.TotalTime = dTotalTime;
                         itemSource.ShipmentStatus = 2;
+                        itemSource.Labels = [];
                         if (itemSource.Cost > dAmount)
                         {
                             dDiff = itemSource.Cost.PlusNumber(dAmount * -1).PlusNumber(0.2);
@@ -450,6 +453,7 @@ public class LeUsService(
                             itemSource.Remote = dDiff;
                             dRemote += dDiff;
                         }
+
                         //Update shipment with shipment status is 2 to prevent run duplicate processing
                         await mediator.Send(new EditShipmentCommand()
                         {
@@ -511,7 +515,8 @@ public class LeUsService(
                             dDiff = itemSource.Cost.PlusNumber(dAmount * -1).PlusNumber(0.2);
                             itemSource.Remote = dDiff;
                             dRemote += dDiff;
-                        } 
+                        }
+
                         //Update shipment with shipment status is 2 to prevent run duplicate processing
                         await mediator.Send(new EditShipmentCommand()
                         {
@@ -650,50 +655,59 @@ public class LeUsService(
                         ShipmentId = resG.Data?.ShipmentId,
                         Cost = resG.Data?.Fees?.Sum(s => s.Amount) ?? 0,
                         TrackIds = resG.Data?.TrackingNo,
+                        Labels = []
                     };
                     if (newItem.Cost > dAmount)
                     {
                         dRemote = newItem.Cost.PlusNumber(dAmount * -1).PlusNumber(0.2);
                         newItem.Remote = dRemote;
                     }
-
+                    
                     //Get label if the processing is successful
-                    var gpsResult = await gpsService.GetLabel(new GpsLabelRequest()
+                    var rqLabel = new GpsLabelRequest()
                     {
                         ShipmentId = newItem.ShipmentId
-                    });
-                    newItem.TotalTime = (DateTime.UtcNow - dStart).TotalSeconds;
-                    if (gpsResult is { Success: true, Data.Count: > 0 })
+                    };
+                    for (var i = 0; i < 30; i++)
                     {
-                        newItem.Labels ??= [];
-                        newItem.TrackIds = "";
-                        foreach (var itemLabel in gpsResult.Data!)
+                        var gpsResult = await gpsService.GetLabel(rqLabel);
+                        if (gpsResult is { Success: true, Data.Count: > 0 })
                         {
-                            var tmpShortTrack = MathTrack($"{itemLabel.TrackingNo}");
-                            if (itemLabel.LabelBase64S != null)
+                            newItem.Labels ??= [];
+                            newItem.TrackIds = "";
+                            foreach (var itemLabel in gpsResult.Data!)
                             {
-                                newItem.Labels.AddRange(itemLabel.LabelBase64S);
-                            }
-                            else
-                            {
-                                newItem.Labels.Add(new LabelDetail()
+                                var tmpShortTrack =
+                                    $"{item.ServiceCode}".Contains("USPS", StringComparison.OrdinalIgnoreCase)
+                                        ? MathTrack($"{itemLabel.TrackingNo}")
+                                        : itemLabel.TrackingNo;
+                                if (itemLabel.LabelBase64S != null)
                                 {
-                                    Label = itemLabel.LabelBase64,
-                                    TrackignNo = tmpShortTrack,
-                                });
+                                    newItem.Labels.AddRange(itemLabel.LabelBase64S);
+                                }
+                                else
+                                {
+                                    newItem.Labels.Add(new LabelDetail()
+                                    {
+                                        Label = itemLabel.LabelBase64,
+                                        TrackignNo = tmpShortTrack,
+                                    });
+                                }
+
+                                newItem.TrackIds += tmpShortTrack + " ";
                             }
 
-                            newItem.TrackIds += tmpShortTrack + " ";
+                            if (newItem.TrackIds.NotIsNullOrEmpty())
+                            {
+                                newItem.TrackIds = newItem.TrackIds.Trim();
+                            }
+                            newItem.TotalTime = (DateTime.UtcNow - dStart).TotalSeconds;
+                            newHis.Response = $"{newItem.TrackIds} - {newItem.TotalTime}";
+                            break;
                         }
-
-                        if (newItem.TrackIds.NotIsNullOrEmpty())
-                        {
-                            newItem.TrackIds = newItem.TrackIds.Trim();
-                        }
-
-                        newHis.Response = $"{sTrackingId} - {newItem.TotalTime}";
+                        newHis.Response = gpsService.LogContent;
+                        await Task.Delay(2000);
                     }
-
                     oUps.Add(newItem);
                 }
                 else
@@ -849,7 +863,8 @@ public class LeUsService(
         }
 
         result.Data = new DownloadFileContent();
-        var lstLabels = oUps.SelectMany(s => s.Labels!).ToList().ToList();
+        var lstLabels = oUps.Where(w => w.Labels != null).SelectMany(s => s.Labels!).ToList().ToList();
+        if (lstLabels is { Count: 0 }) return result;
         if (lstLabels.Count == 1)
         {
             result.Data.code = $"{lstLabels[0].TrackignNo}.pdf";
@@ -1021,7 +1036,7 @@ public class LeUsService(
         return results;
     }
 
-    public async Task<DownloadFileContent> GetLabel(List<string> input, string? userId)
+    public async Task<DownloadFileContent> GetLabel(List<string> input, string? userId, int typeFileName = 0)
     {
         var result = new DownloadFileContent();
         var lstUpdate = new List<CShipment>();
@@ -1030,7 +1045,7 @@ public class LeUsService(
             RefIds = input,
             UserId = userId
         });
-        var lstLabels = new List<LabelDetail>();
+        var lstLabels = new List<LabelDetailExt>();
         if (shipments is not { Count: > 0 }) return result;
         foreach (var item in shipments)
         {
@@ -1049,7 +1064,10 @@ public class LeUsService(
                             item.TrackIds = "";
                             foreach (var itemLabel in gpsResult.Data!)
                             {
-                                var tmpShortTrack = MathTrack($"{itemLabel.TrackingNo}");
+                                var tmpShortTrack =
+                                    $"{item.ServiceCode}".Contains("USPS", StringComparison.OrdinalIgnoreCase)
+                                        ? MathTrack($"{itemLabel.TrackingNo}")
+                                        : itemLabel.TrackingNo;
                                 if (itemLabel.LabelBase64S != null)
                                 {
                                     item.Labels.AddRange(itemLabel.LabelBase64S);
@@ -1075,12 +1093,22 @@ public class LeUsService(
                         }
                     }
 
-                    lstLabels.AddRange(item.Labels!);
+                    lstLabels.AddRange(item.Labels!.Select(s => new LabelDetailExt()
+                    {
+                        Label = s.Label,
+                        TrackignNo = s.TrackignNo,
+                        Ref2 = item.ReferenceId2
+                    }));
                     break;
                 default:
                     if (item.Labels is { Count: > 0 })
                     {
-                        lstLabels.AddRange(item.Labels!);
+                        lstLabels.AddRange(item.Labels!.Select(s => new LabelDetailExt()
+                        {
+                            Label = s.Label,
+                            TrackignNo = s.TrackignNo,
+                            Ref2 = item.ReferenceId2
+                        }));
                     }
 
                     break;
@@ -1099,7 +1127,7 @@ public class LeUsService(
         if (lstLabels is { Count: 0 }) return result;
         if (lstLabels.Count == 1)
         {
-            result.code = $"{lstLabels[0].TrackignNo}.pdf";
+            result.code = $"{(typeFileName == 0 ? lstLabels[0].TrackignNo : lstLabels[0].Ref2)}.pdf";
             result.content = Convert.FromBase64String($"{lstLabels[0].Label}");
         }
         else
@@ -1109,7 +1137,7 @@ public class LeUsService(
             {
                 foreach (var item in lstLabels)
                 {
-                    var zipEntry = zipArchive.CreateEntry($"{item.TrackignNo}.pdf");
+                    var zipEntry = zipArchive.CreateEntry($"{(typeFileName == 0 ? item.TrackignNo : item.Ref2)}.pdf");
                     var bContent = Convert.FromBase64String($"{item.Label}");
                     using var originalFileStream = new MemoryStream(bContent);
                     await using var zipEntryStream = zipEntry.Open();
@@ -1181,7 +1209,15 @@ public class LeUsService(
         var sContent = await httpResponse.Content.ReadAsStringAsync();
         var oZoneInfo = sContent.ToObject<CZoneInfo>();
         if (oZoneInfo.ZoneInformation.IsNullOrEmpty()) return 0;
-        var iIndex = $"{oZoneInfo.ZoneInformation}".IndexOf($".", StringComparison.Ordinal);
+        var iIndex = $"{oZoneInfo.ZoneInformation}".IndexOf($",", StringComparison.Ordinal);
+        if (iIndex > 0)
+        {
+            sContent = $"{oZoneInfo.ZoneInformation}"[..iIndex];
+            var aDataOne = sContent.SplitExt().Reverse();
+            return $"{aDataOne.FirstOrDefault()}".ConvertToInt();
+        }
+
+        iIndex = $"{oZoneInfo.ZoneInformation}".IndexOf($".", StringComparison.Ordinal);
         if (iIndex < 0) return 0;
         sContent = $"{oZoneInfo.ZoneInformation}"[..iIndex];
         var aData = sContent.SplitExt().Reverse();
