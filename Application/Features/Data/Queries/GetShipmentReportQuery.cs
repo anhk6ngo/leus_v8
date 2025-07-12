@@ -6,7 +6,6 @@ public class GetShipmentReportQuery : IRequest<List<CShipmentReport>>
     public string? UserId { get; set; }
     public int TypeReport { get; set; } = 0;
     public string? RefIds { get; set; }
-    
 }
 
 internal class GetShipmentReportQueryHandler(IUnitOfWork<Guid, PortalContext> unitOfWork)
@@ -15,7 +14,6 @@ internal class GetShipmentReportQueryHandler(IUnitOfWork<Guid, PortalContext> un
     public async Task<List<CShipmentReport>> Handle(GetShipmentReportQuery request,
         CancellationToken cancellationToken)
     {
-       
         var oDateRange = $"{request.DateRange}".ConvertRangeDate(lastday: true, isUtc: true);
         var oFilter = PredicateBuilder.True<CShipment>();
         // if (request.TypeReport == -1)
@@ -34,20 +32,22 @@ internal class GetShipmentReportQueryHandler(IUnitOfWork<Guid, PortalContext> un
         //     }
         //     return [];
         // }
+        var iStatus = request.TypeReport == 0 ? 2 : 3;
         if (request.TypeReport == 0)
         {
-            oFilter = oFilter.And(w => w.IsActive && w.CreatedOn >= oDateRange.dFrom
-                                                  && w.CreatedOn <= oDateRange.dTo && w.ShipmentStatus == 2);
+            oFilter = oFilter.And(w => w.CreateLabelDate >= oDateRange.dFrom
+                                       && w.CreateLabelDate <= oDateRange.dTo);
         }
         else
         {
-            oFilter = oFilter.And(w => w.CreateLabelDate != null && w.CancelLabelDate >= oDateRange.dFrom
-                                                  && w.CancelLabelDate <= oDateRange.dTo);
+            oFilter = oFilter.And(w => w.CancelLabelDate >= oDateRange.dFrom
+                                       && w.CancelLabelDate <= oDateRange.dTo);
         }
-        if (request.UserId.NotIsNullOrEmpty())
-        {
-            oFilter = oFilter.And(w => w.CreatedBy == request.UserId);
-        }
+
+        oFilter = request.UserId.NotIsNullOrEmpty()
+            ? oFilter.And(w => w.ShipmentStatus == iStatus && w.CreatedBy == request.UserId)
+            : oFilter.And(w => w.ShipmentStatus == iStatus);
+
         var result = await unitOfWork.RepositoryNew<CShipment>().Entities
             .Where(oFilter)
             .ProjectToType<CShipmentReport>()

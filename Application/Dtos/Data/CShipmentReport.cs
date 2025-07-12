@@ -1,4 +1,7 @@
-﻿namespace LeUs.Application.Dtos.Data;
+﻿using LeUs.Application.Dtos.Gps;
+using CAddress = LeUs.Application.Dtos.Gps.CAddress;
+
+namespace LeUs.Application.Dtos.Data;
 
 public class CShipmentReport
 {
@@ -21,12 +24,22 @@ public class CShipmentReport
     public int ShipmentStatus { get; set; }
     public string? ApiName { get; set; }
     public string? TrackIds { get; set; }
+
+    public string? Box
+    {
+        get
+        {
+            return this.Boxes?.Select(s => $"{s.Length}x{s.Width}x{s.Height} {s.Weight}").FirstOrDefault();
+        }
+    }
+
     public double? Remote { get; set; }
     public double? ExtraLongFee { get; set; } = 0;
     public double? OverLimitFee { get; set; } = 0;
     public double? ExcessVolumeFee { get; set; } = 0;
     public int ZonePrice { get; set; }
     public double TotalTime { get; set; } = 0;
+    public List<CManifestBox>? Boxes { get; set; }
     public DateTime? CreateLabelDate { get; set; }
     public DateTime? CancelLabelDate { get; set; }
     public DateTime CreatedOn { get; set; }

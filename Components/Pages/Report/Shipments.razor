@@ -25,14 +25,16 @@ else
         <ToolbarRight>
             <div class="d-flex flex-stack">
                 <div class="form-check me-2">
-                    <input class="form-check-input" type="radio" value="0" checked="@(_request.TypeReport == 0)" id="flexState"
+                    <input class="form-check-input" type="radio" value="0" checked="@(_request.TypeReport == 0)"
+                           id="flexState"
                            name="rdoState" @onchange="() => _request.TypeReport = 0">
                     <label class="form-check-label" for="flexState">
                         Created
                     </label>
                 </div>
                 <div class="form-check me-2">
-                    <input class="form-check-input" type="radio" checked="@(_request.TypeReport == 1)" value="1" id="flexState1"
+                    <input class="form-check-input" type="radio" checked="@(_request.TypeReport == 1)" value="1"
+                           id="flexState1"
                            name="rdoState" @onchange="() => _request.TypeReport = 1">
                     <label class="form-check-label" for="flexState1">
                         Void
@@ -67,6 +69,7 @@ else
                         <th>Post Code</th>
                         <th>City</th>
                         <th>Country</th>
+                        <th>Box</th>
                         <th>Weight</th>
                         <th>Zone</th>
                         <th>Tracking Id</th>
@@ -91,7 +94,6 @@ else
                             <th>Excess Volume</th>
                             <th>Amount</th>
                         }
-                        
                     </tr>
                     </thead>
                     <tbody>
@@ -111,6 +113,7 @@ else
                             <td>@item.Consignee?.Zip</td>
                             <td>@item.Consignee?.City</td>
                             <td>@item.Consignee?.CountryCode</td>
+                            <td>@item.Box</td>
                             <td>@item.Weight @item.WeightUnit</td>
                             <td>@item.ZonePrice</td>
                             <td>@item.TrackIds</td>
@@ -121,7 +124,8 @@ else
                                 }
                                 else
                                 {
-                                    @item.CancelLabelDate.ToDmy("dd-MMM-yy HH:mm");
+                                    @item.CancelLabelDate.ToDmy("dd-MMM-yy HH:mm")
+                                    ;
                                 }
                             </td>
                             @if (isAcc)
@@ -151,8 +155,6 @@ else
     </Card>
 }
 
-
-
 @code {
     private List<CShipmentReport>? _items;
     private List<CCustomerDto> _customers = [];
@@ -165,7 +167,7 @@ else
 
     protected override void OnInitialized()
     {
-        DateRange = "".InitDateRange(iEnd:-2);
+        DateRange = "".InitDateRange(iEnd: -2);
         base.OnInitialized();
     }
 
@@ -182,6 +184,7 @@ else
             {
                 _customers = await Mediator.Send(new GetAllCustomerQuery());
             }
+
             await GetData();
             await CallInitRangeDate();
         }
@@ -218,7 +221,7 @@ else
         InitDataTable = true;
         StateHasChanged();
     }
-    
+
     private async Task DoExport()
     {
         if (_request.Export)
@@ -230,11 +233,14 @@ else
             var result = ExcelService.DownloadShipment(data: _items!, isAcc, _customers);
             if (result.content.Length > 0)
             {
-                await BlazorDownloadFile(result.code, result.fileType, result.content);
+                using var stream = new MemoryStream(result.content);
+                var dotnetStream = new DotNetStreamReference(stream);
+                await CallJs("downloadFileFromStream", result.code, dotnetStream);
             }
             IsLoading = false;
             InitDataTable = true;
             StateHasChanged();
         }
     }
+
 }

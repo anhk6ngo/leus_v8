@@ -1,5 +1,4 @@
-﻿using System.Threading.RateLimiting;
-using LeUs.Components.Account;
+﻿using LeUs.Components.Account;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.OpenApi.Models;
 
@@ -10,6 +9,7 @@ namespace LeUs.Installers
         public void InstallService(IServiceCollection services, IConfiguration configuration)
         {
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            
             services.AddRazorComponents()
                 .AddInteractiveServerComponents();
             services.AddControllers();

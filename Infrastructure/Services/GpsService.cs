@@ -1,7 +1,4 @@
-﻿using System.Net;
-using System.Text;
-using LeUs.Application.Dtos.Gps;
-using Microsoft.Extensions.Options;
+﻿using LeUs.Application.Dtos.Gps;
 
 namespace LeUs.Infrastructure.Services;
 

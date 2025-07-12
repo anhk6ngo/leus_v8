@@ -427,7 +427,10 @@ else
         var result = await LeUsService.GetLabel(selectRefId.ToList(), ShareUserInfo?.UserId, iFileName);
         if (result.content.Length > 0)
         {
-            await BlazorDownloadFile(result.code, result.fileType, result.content);
+            using var stream = new MemoryStream(result.content);
+            var dotnetStream = new DotNetStreamReference(stream);
+            await CallJs("downloadFileFromStream", result.code, dotnetStream);
+            //await BlazorDownloadFile(result.code, result.fileType, result.content);
         }
 
         ShowHideLoading(isShow: false, initTable: true);

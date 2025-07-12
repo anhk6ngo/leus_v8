@@ -279,29 +279,30 @@ public class ExcelService(
         ws.Cells[$"K{iRow}"].Value = "Zip";
         ws.Cells[$"L{iRow}"].Value = "City";
         ws.Cells[$"M{iRow}"].Value = "Country";
-        ws.Cells[$"N{iRow}"].Value = "Weight";
-        ws.Cells[$"O{iRow}"].Value = "Weight Unit";
-        ws.Cells[$"P{iRow}"].Value = "Zone";
-        ws.Cells[$"Q{iRow}"].Value = "Tracking";
+        ws.Cells[$"N{iRow}"].Value = "Box";
+        ws.Cells[$"O{iRow}"].Value = "Weight";
+        ws.Cells[$"P{iRow}"].Value = "Weight Unit";
+        ws.Cells[$"Q{iRow}"].Value = "Zone";
+        ws.Cells[$"R{iRow}"].Value = "Tracking";
         if (isAcc)
         {
-            ws.Cells[$"R{iRow}"].Value = "Customer";
-            ws.Cells[$"S{iRow}"].Value = "Price";
-            ws.Cells[$"T{iRow}"].Value = "Cost";
-            ws.Cells[$"U{iRow}"].Value = "Remote";
-            ws.Cells[$"V{iRow}"].Value = "Extra Long";
-            ws.Cells[$"W{iRow}"].Value = "Over Limit";
-            ws.Cells[$"X{iRow}"].Value = "Excess Volume";
-            ws.Cells[$"Y{iRow}"].Value = "Void Date";
+            ws.Cells[$"S{iRow}"].Value = "Customer";
+            ws.Cells[$"T{iRow}"].Value = "Price";
+            ws.Cells[$"U{iRow}"].Value = "Cost";
+            ws.Cells[$"V{iRow}"].Value = "Remote";
+            ws.Cells[$"W{iRow}"].Value = "Extra Long";
+            ws.Cells[$"X{iRow}"].Value = "Over Limit";
+            ws.Cells[$"Y{iRow}"].Value = "Excess Volume";
+            ws.Cells[$"Z{iRow}"].Value = "Void Date";
         }
         else
         {
-            ws.Cells[$"R{iRow}"].Value = "Price";
-            ws.Cells[$"S{iRow}"].Value = "Remote";
-            ws.Cells[$"T{iRow}"].Value = "Extra Long";
-            ws.Cells[$"U{iRow}"].Value = "Over Limit";
-            ws.Cells[$"V{iRow}"].Value = "Excess Volume";
-            ws.Cells[$"W{iRow}"].Value = "Void Date";
+            ws.Cells[$"S{iRow}"].Value = "Price";
+            ws.Cells[$"T{iRow}"].Value = "Remote";
+            ws.Cells[$"U{iRow}"].Value = "Extra Long";
+            ws.Cells[$"V{iRow}"].Value = "Over Limit";
+            ws.Cells[$"W{iRow}"].Value = "Excess Volume";
+            ws.Cells[$"X{iRow}"].Value = "Void Date";
         }
 
         iRow = 2;
@@ -320,10 +321,11 @@ public class ExcelService(
             ws.Cells[$"K{iRow}"].Value = item.Consignee?.Zip;
             ws.Cells[$"L{iRow}"].Value = item.Consignee?.City;
             ws.Cells[$"M{iRow}"].Value = item.Consignee?.CountryCode;
-            ws.Cells[$"N{iRow}"].Value = item.ChargeWeight;
-            ws.Cells[$"O{iRow}"].Value = item.WeightUnit;
-            ws.Cells[$"P{iRow}"].Value = item.ZonePrice;
-            var rng = ws.Cells[$"Q{iRow}"];
+            ws.Cells[$"N{iRow}"].Value = item.Box;
+            ws.Cells[$"O{iRow}"].Value = item.ChargeWeight;
+            ws.Cells[$"P{iRow}"].Value = item.WeightUnit;
+            ws.Cells[$"Q{iRow}"].Value = item.ZonePrice;
+            var rng = ws.Cells[$"R{iRow}"];
             if ($"{item.ServiceCode}".Contains("usps", StringComparison.OrdinalIgnoreCase) &&
                 item.TrackIds.NotIsNullOrEmpty())
             {
@@ -338,23 +340,23 @@ public class ExcelService(
             rng.Value = item.TrackIds;
             if (isAcc)
             {
-                ws.Cells[$"R{iRow}"].Value = customers.FirstOrDefault(w => w.Id.ToString() == item.CustomerId)?.Name;
-                ws.Cells[$"S{iRow}"].Value = item.Price ?? 0;
-                ws.Cells[$"T{iRow}"].Value = item.Cost ?? 0;
-                ws.Cells[$"U{iRow}"].Value = item.Remote ?? 0;
-                ws.Cells[$"V{iRow}"].Value = item.ExtraLongFee ?? 0;
-                ws.Cells[$"W{iRow}"].Value = item.OverLimitFee ?? 0;
-                ws.Cells[$"X{iRow}"].Value = item.ExcessVolumeFee ?? 0;
-                ws.Cells[$"Y{iRow}"].Value = item.CancelLabelDate.ToDmy();
+                ws.Cells[$"S{iRow}"].Value = customers.FirstOrDefault(w => w.Id.ToString() == item.CustomerId)?.Name;
+                ws.Cells[$"T{iRow}"].Value = item.Price ?? 0;
+                ws.Cells[$"U{iRow}"].Value = item.Cost ?? 0;
+                ws.Cells[$"V{iRow}"].Value = item.Remote ?? 0;
+                ws.Cells[$"W{iRow}"].Value = item.ExtraLongFee ?? 0;
+                ws.Cells[$"X{iRow}"].Value = item.OverLimitFee ?? 0;
+                ws.Cells[$"Y{iRow}"].Value = item.ExcessVolumeFee ?? 0;
+                ws.Cells[$"Z{iRow}"].Value = item.CancelLabelDate.ToDmy();
             }
             else
             {
-                ws.Cells[$"R{iRow}"].Value = item.Price ?? 0;
-                ws.Cells[$"S{iRow}"].Value = item.Remote ?? 0;
-                ws.Cells[$"T{iRow}"].Value = item.ExtraLongFee ?? 0;
-                ws.Cells[$"U{iRow}"].Value = item.OverLimitFee ?? 0;
-                ws.Cells[$"V{iRow}"].Value = item.ExcessVolumeFee ?? 0;
-                ws.Cells[$"W{iRow}"].Value = item.CancelLabelDate.ToDmy();
+                ws.Cells[$"S{iRow}"].Value = item.Price ?? 0;
+                ws.Cells[$"T{iRow}"].Value = item.Remote ?? 0;
+                ws.Cells[$"U{iRow}"].Value = item.ExtraLongFee ?? 0;
+                ws.Cells[$"V{iRow}"].Value = item.OverLimitFee ?? 0;
+                ws.Cells[$"W{iRow}"].Value = item.ExcessVolumeFee ?? 0;
+                ws.Cells[$"X{iRow}"].Value = item.CancelLabelDate.ToDmy();
             }
 
             iRow++;
@@ -363,7 +365,7 @@ public class ExcelService(
         return new DownloadFileContent()
         {
             fileType = MimeTypes.TextXlsx,
-            code = $"Shipment_{new Random().Next(10000)}",
+            code = $"Shipment_{new Random().Next(10000)}.xlsx",
             content = pck.GetAsByteArray()
         };
     }

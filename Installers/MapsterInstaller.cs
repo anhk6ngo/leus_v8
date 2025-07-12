@@ -4,10 +4,10 @@ public class MapsterInstaller : IInstaller
 {
     public void InstallService(IServiceCollection services, IConfiguration configuration)
     {
-        // TypeAdapterConfig<CShipment, CShipmentDto>.NewConfig()
-        //     .Map(des => des.TotalTime,
-        //         src => (src.ShipmentStatus != 2
-        //             ? 0
-        //             : (src.LastModifiedOn!.Value - src.CreateLabelDate!.Value).TotalSeconds));
+        // TypeAdapterConfig<CShipment, CShipmentReport>.NewConfig()
+        //     .Map(des => des.Box,
+        //         src => src.Boxes != null
+        //             ? src.Boxes.Select(s => $"{s.Length}x{s.Width}x{s.Height} {s.Weight}").ToList().FirstOrDefault()
+        //             : "");
     }
 }

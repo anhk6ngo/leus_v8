@@ -57,4 +57,9 @@ public class CShipment : AuditableEntityNew<Guid>, IShipment, ICStoreLabel
     public DateTime? CancelLabelDate { get; set; }
     public double? ChargeWeight { get; set; }
     public int ShipmentStatus { get; set; }
+
+    public CShipmentReport ToShipmentReport()
+    {
+        return this.Adapt<CShipmentReport>();
+    }
 }

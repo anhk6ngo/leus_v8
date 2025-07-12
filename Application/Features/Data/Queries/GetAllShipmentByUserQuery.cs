@@ -53,9 +53,9 @@ internal class GetAllShipmentByUserQueryHandler(IUnitOfWork<Guid, PortalContext>
             }
             else
             {
-                oFilter = oFilter.And(w => w.IsActive && w.CreatedOn >= oDateRange.dFrom
+                oFilter = oFilter.And(w => w.CreatedOn >= oDateRange.dFrom
                                                       && w.CreatedOn <= oDateRange.dTo &&
-                                                      w.CreatedBy == request.UserId);
+                                                      w.CreatedBy == request.UserId && w.IsActive==true);
             }
         }
         if (request.IsTimeOut)

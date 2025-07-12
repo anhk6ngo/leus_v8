@@ -193,7 +193,7 @@
                 <tbody>
                 @if (_items is { Count: > 0 })
                 {
-                    foreach (var item in _items)
+                    foreach (var item in _items.OrderBy(o => o.TransDate).ThenBy(o => o.CustomerId))
                     {
                         <tr>
                             <td>@item.TransDate.ToDmy()</td>
@@ -236,7 +236,7 @@
 
     protected override void OnInitialized()
     {
-        DateRange = "".InitDateRange(iEnd:-3);
+        DateRange = "".InitDateRange(iEnd: -3);
         IsLoading = true;
         _request.UserId = $"{ShareUserInfo?.UserId}";
         base.OnInitialized();
@@ -256,6 +256,7 @@
                     _customers = await Mediator.Send(new GetAllCustomerQuery());
                 }
             }
+
             _balanceDto = await Mediator.Send(new GetBalanceByUserQuery()
             {
                 UserId = _request.UserId
@@ -318,4 +319,5 @@
         _initChart = true;
         StateHasChanged();
     }
+
 }
