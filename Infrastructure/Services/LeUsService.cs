@@ -294,11 +294,11 @@ public class LeUsService(
         var oHis = new List<CHistoryLabel>();
         var dAddAmount = 0.0;
         var dBalance = 0.0;
-        var dRemote = 0.0;
         var dDiff = 0.0;
         BalanceRequest rqBalance;
         foreach (var refId in refIds)
         {
+            var dRemote = 0.0;
             var itemSource = await mediator.Send(new GetShipmentByRefQuery()
             {
                 RefId = refId,
@@ -357,14 +357,14 @@ public class LeUsService(
                 });
                 return results;
             }
-
+            //Change status of shipment
             var rqChangeStatus = new UpdateShipmentStatusCommand()
             {
                 Id = itemSource.Id
             };
             await mediator.Send(rqChangeStatus);
-            UpdateCacheBalance(userId, dAmount * -1);
             //reduce balance before generate label
+            UpdateCacheBalance(userId, dAmount * -1);
             rqBalance = new BalanceRequest()
             {
                 UserId = userId,
@@ -404,7 +404,7 @@ public class LeUsService(
                         {
                             dDiff = itemSource.Cost.PlusNumber(dAmount * -1).PlusNumber(0.2);
                             itemSource.Remote = dDiff;
-                            dRemote += dDiff;
+                            dRemote = dDiff;
                         }
 
                         //Update shipment with shipment status is 2 to prevent run duplicate processing
@@ -451,7 +451,7 @@ public class LeUsService(
                         {
                             dDiff = itemSource.Cost.PlusNumber(dAmount * -1).PlusNumber(0.2);
                             itemSource.Remote = dDiff;
-                            dRemote += dDiff;
+                            dRemote = dDiff;
                         }
 
                         //Update shipment with shipment status is 2 to prevent run duplicate processing
@@ -514,7 +514,7 @@ public class LeUsService(
                         {
                             dDiff = itemSource.Cost.PlusNumber(dAmount * -1).PlusNumber(0.2);
                             itemSource.Remote = dDiff;
-                            dRemote += dDiff;
+                            dRemote = dDiff;
                         }
 
                         //Update shipment with shipment status is 2 to prevent run duplicate processing
@@ -537,7 +537,7 @@ public class LeUsService(
                     }
                     else
                     {
-                        newHis.Response = resU.service;
+                        newHis.Response = resU.service + " " + resU.package;
                         newHis.Request = rqU.ConvertObjectToString();
                         newHis.CratedOn = DateTime.UtcNow;
                         blnFailure = true;
@@ -554,30 +554,31 @@ public class LeUsService(
 
             newHis.Status = blnFailure;
             oHis.Add(newHis);
+            if (dRemote > 0.0 || blnFailure)
+            {
+                //Update cache balance if generate label failure or have diff amount between price and cost
+                UpdateCacheBalance(userId, blnFailure ? dAmount : dRemote * -1);
+                rqBalance = new BalanceRequest()
+                {
+                    UserId = userId,
+                    Amount = blnFailure ? dAmount : dRemote,
+                    Action = blnFailure ? ActionCommandType.Add : ActionCommandType.Delete
+                };
+                await FuncBalance(rqBalance);
+            }
+
             if (!blnFailure) continue;
-            //Increase balance if generate label failure
+            //Update shipment status
             rqChangeStatus.Status = 0;
             await mediator.Send(rqChangeStatus);
-            dAddAmount += dAmount;
         }
 
-        dAddAmount -= dRemote;
+        //Update Logs
         await mediator.Send(new UpdateLabelShipmentCommand()
         {
             Data = [],
             History = oHis
         });
-
-        if (dAddAmount == 0.0) return results;
-        //Return amount for end-user
-        UpdateCacheBalance(userId, dAddAmount);
-        rqBalance = new BalanceRequest()
-        {
-            UserId = userId,
-            Amount = dAddAmount,
-            Action = ActionCommandType.Add
-        };
-        await FuncBalance(rqBalance);
         return results;
     }
 
@@ -620,6 +621,7 @@ public class LeUsService(
         }
 
         var dRemote = 0.0;
+        //Reduce balance before generate label
         UpdateCacheBalance(userId, dAmount * -1);
         var rqBalance = new BalanceRequest()
         {
@@ -662,7 +664,7 @@ public class LeUsService(
                         dRemote = newItem.Cost.PlusNumber(dAmount * -1).PlusNumber(0.2);
                         newItem.Remote = dRemote;
                     }
-                    
+
                     //Get label if the processing is successful
                     var rqLabel = new GpsLabelRequest()
                     {
@@ -701,13 +703,16 @@ public class LeUsService(
                             {
                                 newItem.TrackIds = newItem.TrackIds.Trim();
                             }
+
                             newItem.TotalTime = (DateTime.UtcNow - dStart).TotalSeconds;
                             newHis.Response = $"{newItem.TrackIds} - {newItem.TotalTime}";
                             break;
                         }
+
                         newHis.Response = gpsService.LogContent;
                         await Task.Delay(2000);
                     }
+
                     oUps.Add(newItem);
                 }
                 else
@@ -813,7 +818,7 @@ public class LeUsService(
                 }
                 else
                 {
-                    newHis.Response = resU.service;
+                    newHis.Response = resU.service + " " + resU.package;
                     newHis.Request = rqU.ConvertObjectToString();
                     newHis.CratedOn = DateTime.UtcNow;
                     blnFailure = true;
@@ -824,28 +829,15 @@ public class LeUsService(
                 break;
         }
 
-        if (blnFailure)
+        //Update balance when remote fee greater than 0 or generate label failure
+        if (dRemote > 0 || blnFailure)
         {
-            //Increase balance if generate label failure
-            UpdateCacheBalance(userId, dAmount);
+            UpdateCacheBalance(userId, blnFailure ? dAmount : dRemote * -1);
             rqBalance = new BalanceRequest()
             {
                 UserId = userId,
-                Amount = dAmount,
-                Action = ActionCommandType.Add
-            };
-            await FuncBalance(rqBalance);
-        }
-
-        //Update balance when remote fee greater than 0
-        if (dRemote > 0)
-        {
-            UpdateCacheBalance(userId, dRemote * -1);
-            rqBalance = new BalanceRequest()
-            {
-                UserId = userId,
-                Amount = dRemote,
-                Action = ActionCommandType.Delete
+                Amount = blnFailure ? dAmount : dRemote,
+                Action = blnFailure ? ActionCommandType.Add : ActionCommandType.Delete
             };
             await FuncBalance(rqBalance);
         }
@@ -1202,8 +1194,9 @@ public class LeUsService(
     {
         var client = clientFactory.CreateClient("uspsZone");
         var tmpTo = to.SplitExt("-")[0];
+        var tmpFrom = from.SplitExt("-")[0];
         var endpoint =
-            $"DomesticZoneChart/GetZone?origin={from}&destination={tmpTo}&shippingDate={DateTime.Today.ToShortDateString()}";
+            $"DomesticZoneChart/GetZone?origin={tmpFrom}&destination={tmpTo}&shippingDate={DateTime.Today.ToShortDateString()}";
         using var httpResponse = await client.GetAsync(endpoint);
         if (httpResponse.StatusCode != HttpStatusCode.OK) return 0;
         var sContent = await httpResponse.Content.ReadAsStringAsync();

@@ -17,5 +17,6 @@ public class SumShipmentResponse
     public double ExcessVolume { get; set; }
     public int Status { get; set; } = 0;
     public string? ServiceCode { get; set; }
+    public string? State { get; set; }
     public DateTime TransDate { get; set; }
 }

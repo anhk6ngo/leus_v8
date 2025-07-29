@@ -41,3 +41,4 @@ global using Microsoft.Extensions.Options;
 global using System.Net;
 global using System.Text;
 global using LeUs.Infrastructure.Services;
+global using LeUs.Application.Extensions;

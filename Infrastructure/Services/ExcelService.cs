@@ -188,7 +188,10 @@ public class ExcelService(
                 newItem.Consignee.Email = null;
             }
 
-            var valResult = await valshipment.ValidateAsync(newItem);
+            var blnGps = $"{newItem.ApiName}".ToLower() == "gps";
+            var valResult = blnGps
+                ? await valshipment.ValidateAsync(newItem, options => { options.IncludeAllRuleSets(); })
+                : await valshipment.ValidateAsync(newItem);
             if (valResult.IsValid)
             {
                 lstDetail.Add(newItem);

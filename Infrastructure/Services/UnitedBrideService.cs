@@ -43,18 +43,18 @@ public class UnitedBrideService(IOptions<ApiSetting> options, IHttpClientFactory
             var sData = new StringContent(sObject, Encoding.UTF8, "application/json");
             using var httpResponse = await client.PostAsync(endpoint, sData);
             var sDataResponse = await httpResponse.Content.ReadAsStringAsync();
+            result.service = sDataResponse;
             if (httpResponse.StatusCode == HttpStatusCode.OK)
             {
                 return sDataResponse.ToObject<UBuyReponse>();
             }
             result.zone = -1;
-            result.service = sDataResponse;
             return result;
         }
         catch (Exception e)
         {
             result.zone = -1;
-            result.service = e.Message;
+            result.package = e.Message;
         }
         return result;
     }

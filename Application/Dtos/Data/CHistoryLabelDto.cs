@@ -1,6 +1,6 @@
 ﻿namespace LeUs.Application.Dtos.Data;
 
-public class CHistoryLabelDto: AggregateRoot<int>, ICHistoryLabel
+public class CHistoryLabelDto: ICHistoryLabel
 {
     public string? Response { get; set; }
     public string? ReferenceId { get; set; }

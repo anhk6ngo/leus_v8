@@ -54,10 +54,11 @@ internal class GetAllShipmentByUserQueryHandler(IUnitOfWork<Guid, PortalContext>
             else
             {
                 oFilter = oFilter.And(w => w.CreatedOn >= oDateRange.dFrom
-                                                      && w.CreatedOn <= oDateRange.dTo &&
-                                                      w.CreatedBy == request.UserId && w.IsActive==true);
+                                           && w.CreatedOn <= oDateRange.dTo &&
+                                           w.CreatedBy == request.UserId && w.IsActive == true);
             }
         }
+
         if (request.IsTimeOut)
         {
             oFilter = oFilter.And(w => w.ShipmentStatus == 2);
@@ -72,6 +73,7 @@ internal class GetAllShipmentByUserQueryHandler(IUnitOfWork<Guid, PortalContext>
         {
             result = result.Where(w => w.TotalTime >= 20).ToList();
         }
+
         return result;
     }
 }

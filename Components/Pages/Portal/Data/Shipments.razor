@@ -11,20 +11,98 @@
 </SectionContent>
 @if (!ShowEdit)
 {
-    <SectionContent SectionName="@NavConstants.TopRight">
-        <div class="d-flex flex-row-auto">
-            <label
-                class="form-check form-switch form-check-custom form-check-success form-check-solid px-2 me-2">
-                <input class="form-check-input" type="checkbox" @bind="@_request.IsTimeOut"/>
-                <span>
-                    Time-out
-                </span>
-            </label>
-            <input @bind="DateRange" class="form-control form-control-sm w-200px mx-2" placeholder="Pick date range"
-                   id="RangeDate"/>
-            <button class="btn btn-sm btn-primary w-100" @onclick="GetData">Get Data</button>
+    <div class="col-md-10 offset-1">
+        <div class="card mb-7">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="position-relative w-md-200px me-md-2">
+                        <i class="ki-duotone ki-calendar-search fs-3 text-gray-500 position-absolute top-50 translate-middle ms-6">
+                            <span class="path1"></span><span class="path2"></span>
+                        </i>
+                        <input @bind="DateRange" class="form-control form-control-sm ps-10"
+                               placeholder="Pick date range" id="RangeDate"/>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <button class="btn btn-primary me-5" @onclick="GetData">Get Data</button>
+                        <div class="d-flex flex-stack me-2">
+                            <div class="form-check me-2">
+                                <input class="form-check-input" type="radio" value="0" checked="@(iState == 0)"
+                                       id="flexState"
+                                       name="rdoState" @onchange="async () => { await FilterData(0); }">
+                                <label class="form-check-label" for="flexState">
+                                    Draft
+                                </label>
+                            </div>
+                            <div class="form-check me-2">
+                                <input class="form-check-input" type="radio" checked="@(iState == 1)" value="1"
+                                       id="flexState1"
+                                       name="rdoState" @onchange="async () => { await FilterData(1); }">
+                                <label class="form-check-label" for="flexState1">
+                                    Label
+                                </label>
+                            </div>
+                            <div class="form-check me-2">
+                                <input class="form-check-input" type="radio" checked="@(iState == 2)" value="2"
+                                       id="flexState1"
+                                       name="rdoState" @onchange="async () => { await FilterData(2); }">
+                                <label class="form-check-label" for="flexState1">
+                                    Cancel
+                                </label>
+                            </div>
+                        </div>
+                        <a href="#" id="search_advanced_link" class="btn btn-link me-2" data-bs-toggle="collapse"
+                           data-bs-target="#advanced_search_form">Advanced Search</a>
+                        @* <label *@
+                        @*     class="form-check form-switch form-check-custom form-check-success form-check-solid px-2 me-2"> *@
+                        @*     <input class="form-check-input" type="checkbox" @bind="@_request.IsTimeOut"/> *@
+                        @*     <span> *@
+                        @*         Time-out *@
+                        @*     </span> *@
+                        @* </label> *@
+                    </div>
+                </div>
+                <div class="collapse" id="advanced_search_form">
+                    <div class="separator separator-dashed mt-9 mb-6"></div>
+                    <div class="row g-8 mb-8">
+                        <div class="col-lg-6">
+                            <label class="fs-6 form-label fw-bold text-gray-900">Ids</label>
+                            <input type="text" class="form-control form-control form-control-solid"
+                                   @bind="_request.RefId"/>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="d-flex flex-stack mt-8">
+                                <div class="form-check me-2">
+                                    <input class="form-check-input" type="radio" value="0"
+                                           checked="@(_request.RefType == 0)"
+                                           name="rdoRef" @onchange="() => { _request.RefType = 0; }">
+                                    <label class="form-check-label" for="flexState">
+                                        Reference Id
+                                    </label>
+                                </div>
+                                <div class="form-check me-2">
+                                    <input class="form-check-input" type="radio" value="1"
+                                           checked="@(_request.RefType == 1)"
+                                           name="rdoRef" @onchange="() => { _request.RefType = 1; }">
+                                    <label class="form-check-label" for="flexState">
+                                        Reference 2 Id
+                                    </label>
+                                </div>
+                                <div class="form-check me-2">
+                                    <input class="form-check-input" type="radio" value="2"
+                                           checked="@(_request.RefType == 2)"
+                                           name="rdoRef" @onchange="() => { _request.RefType = 2; }">
+                                    <label class="form-check-label" for="flexState">
+                                        Tracking Id
+                                    </label>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-    </SectionContent>
+    </div>
 }
 
 
@@ -44,35 +122,11 @@ else
     {
         <Card Title="List of Shipment">
             <ToolbarRight>
-                <div class="d-flex flex-stack">
-                    <div class="form-check me-2">
-                        <input class="form-check-input" type="radio" value="0" checked="@(iState == 0)"
-                               id="flexState"
-                               name="rdoState" @onchange="async () => { await FilterData(0); }">
-                        <label class="form-check-label" for="flexState">
-                            Draft
-                        </label>
-                    </div>
-                    <div class="form-check me-2">
-                        <input class="form-check-input" type="radio" checked="@(iState == 1)" value="1"
-                               id="flexState1"
-                               name="rdoState" @onchange="async () => { await FilterData(1); }">
-                        <label class="form-check-label" for="flexState1">
-                            Label
-                        </label>
-                    </div>
-                    <div class="form-check me-2">
-                        <input class="form-check-input" type="radio" checked="@(iState == 2)" value="2"
-                               id="flexState1"
-                               name="rdoState" @onchange="async () => { await FilterData(2); }">
-                        <label class="form-check-label" for="flexState1">
-                            Cancel
-                        </label>
-                    </div>
-                </div>
                 @if (iState == 0)
                 {
                     <button class="btn btn-primary btn-sm" @onclick="GenerateLabel">Generate Label</button>
+                    <button class="btn btn-danger btn-sm" @onclick="DeleteShipment">Delete Shipments
+                    </button>
                 }
                 @if (iState == 1)
                 {
@@ -128,23 +182,13 @@ else
                             <th>No</th>
                             <th>Ref</th>
                             <th>Track Id</th>
-                            <th>Status</th>
                             <th>Service Code</th>
-                            <th>Entry Point</th>
-                            <th>Name</th>
-                            <th>Address</th>
-                            <th>Address 2</th>
-                            <th>Post Code</th>
-                            <th>City</th>
-                            <th>Country</th>
-                            <th>Duty Code</th>
+                            <th>Sender</th>
+                            <th>Receiver</th>
                             <th>Weight</th>
+                            <th>Dimension</th>
+                            <th>Zone</th>
                             <th>Price</th>
-                            <th>Remote</th>
-                            <th>Extra Long</th>
-                            <th>Over Limit</th>
-                            <th>Excess Volume</th>
-                            <th>Total Time</th>
                             <th class="text-end">Actions</th>
                         </tr>
                         </thead>
@@ -178,23 +222,13 @@ else
                                 <th>@t.item.ReferenceId</th>
                                 <th>@t.item.ReferenceId2</th>
                                 <th>@t.item.TrackIds</th>
-                                <th>@GetStatus(t.item.ShipmentStatus)</th>
                                 <td>@t.item.ServiceCode</td>
-                                <td>@t.item.EntryPoint</td>
+                                <td>@t.item.Shipper?.Name</td>
                                 <td>@t.item.Consignee?.Name</td>
-                                <td>@t.item.Consignee?.AddressLine1</td>
-                                <td>@t.item.Consignee?.AddressLine2</td>
-                                <td>@t.item.Consignee?.Zip</td>
-                                <td>@t.item.Consignee?.City</td>
-                                <td>@t.item.Consignee?.CountryCode</td>
-                                <td>@t.item.DutyType</td>
                                 <td>@t.item.Weight @GetUnitType(t.item.UnitType)</td>
-                                <td>@t.item.Price?.ToString("N2")</td>
-                                <td>@t.item.Remote?.ToString("N2")</td>
-                                <td>@t.item.ExtraLongFee?.ToString("N2")</td>
-                                <td>@t.item.OverLimitFee?.ToString("N2")</td>
-                                <td>@t.item.ExcessVolumeFee?.ToString("N2")</td>
-                                <td>@t.item.TotalTime</td>
+                                <td>@t.item.Dimesion()</td>
+                                <td>@t.item.ZonePrice</td>
+                                <td>@t.item.TotalPrice().ToString("N2")</td>
                                 <td>
                                     @if (t.item.ShipmentStatus == 0)
                                     {
@@ -338,13 +372,30 @@ else
     {
         ShowHideLoading();
         _request.DateRange = DateRange;
-        _items = await Mediator.Send(new GetAllShipmentByUserQuery()
+        var rqData = new GetAllShipmentByUserQuery()
         {
             Status = _request.Status,
             DateRange = _request.DateRange,
             UserId = _request.UserId,
             IsTimeOut = _request.IsTimeOut
-        });
+        };
+        if (_request.RefId.NotIsNullOrEmpty())
+        {
+            switch (_request.RefType)
+            {
+                case 1:
+                    rqData.Ref2Ids = $"{_request.RefId}".SplitExt().ToList();
+                    break;
+                case 2:
+                    rqData.TrackIds = $"{_request.RefId}".SplitExt().ToList();
+                    break;
+                default:
+                    rqData.RefIds = $"{_request.RefId}".SplitExt().ToList();
+                    break;
+            }
+        }
+
+        _items = await Mediator.Send(rqData);
         _items = _items.OrderByDescending(o => o.CreatedOn).ToList();
         if (_request.IsTimeOut)
         {
@@ -507,4 +558,17 @@ else
         FilterBy();
     }
 
+    private async Task DeleteShipment()
+    {
+        var selectRefId = await JsRuntime.InvokeAsync<string[]>("GetCheckBoxAtt", "select-shipment-item", "reference-id");
+        if (selectRefId.Length == 0) return;
+        var iConfirm = await Confirm($"Do you want to delete {selectRefId.Length} shipment?");
+        if (iConfirm == false) return;
+        ShowHideLoading();
+        await Mediator.Send(new DeleteShipmentByRefIdCommand()
+        {
+            RefIds = selectRefId.ToList()
+        });
+        ShowHideLoading(isShow: false, initTable: true);
+    }
 }

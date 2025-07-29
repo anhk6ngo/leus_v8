@@ -18,7 +18,6 @@ public class ShipmentDto : AggregateRoot<Guid>, IBaseShipment
     [MaxLength(30)]
     public string? TrackingNo { get; set; }
 
-    [Required]
     [Description("Warehoue code，you can get the code from the service provider")]
     [MaxLength(30)]
     public string? EntryPoint { get; set; } = "LAX";
@@ -62,7 +61,10 @@ public class ShipmentDto : AggregateRoot<Guid>, IBaseShipment
 
     [Description(
         "Whether the face-to-face signature is required.Some service such as DHL FEDEX provide face-to-face signature service. " +
-        "Generally, this parameter is not required for small packages\nno Signature is no required\nyes Signature is required\nadult Signature is required adult to sign")]
+        "Generally, this parameter is not required for small packages\nno Signature is no required\nyes Signature is required\nadult Signature is required adult to sign\n"+
+        "<div>USPS: SERVICE_DEFAULT, SIGNATURE, ADULT_SIGNATURE_REQUIRED</div>"+
+        "<div>FEDEX: SERVICE_DEFAULT, NO_SIGNATURE_REQUIRED, INDIRECT_SIGNATURE, ADULT_SIGNATURE_REQUIRED, DIRECT_SIGNATURE_REQUIRED</div>"+
+        "<div>UPS: SERVICE_DEFAULT, DELIVERY, U-SIGNATURE, ADULT_SIGNATURE</div>")]
     public string? SignatureRequired { get; set; }
     [MaxLength(30)]
     [Required]
@@ -77,6 +79,7 @@ public class ShipmentDto : AggregateRoot<Guid>, IBaseShipment
     public string? BatteryType { get; set; }
 
     [Description("Customer References")] public CPackageCustomerReference? PackageCustomerReferences { get; set; }
+    [Required]
     [Description("Shipper information")] public CAddress? Shipper { get; set; }
 
     [Description("Consignee information")]
@@ -86,7 +89,6 @@ public class ShipmentDto : AggregateRoot<Guid>, IBaseShipment
     public List<CProduct>? Products { get; set; }
 
     [Description("Customs information")]
-    [Required]
     public List<CCustom>? Customs { get; set; }
 
     [Description("Boxs list")]

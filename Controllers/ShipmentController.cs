@@ -155,6 +155,7 @@ public class ShipmentController(
             dConvert.ShipmentStatus = 0;
         }
 
+        dConvert.Customs ??= [];
         var valResult = await shipmentVal.ValidateAsync(dConvert);
         if (valResult.IsValid)
         {
@@ -172,6 +173,21 @@ public class ShipmentController(
                 return Results.Problem(problemServiceDetails);
             }
 
+            if ($"{oFind.ApiName}".Equals("gps", StringComparison.CurrentCultureIgnoreCase))
+            {
+                valResult = await shipmentVal.ValidateAsync(dConvert, options => { options.IncludeAllRuleSets(); });
+                if (!valResult.IsValid)
+                {
+                    var gpsProblemDetails = new HttpValidationProblemDetails(valResult.ToDictionary())
+                    {
+                        Status = StatusCodes.Status400BadRequest,
+                        Title = "Validation Failed",
+                        Detail = "One or more validation errors occurred.",
+                        Instance = "api/shipment"
+                    };
+                    return Results.Problem(gpsProblemDetails);
+                }
+            }
             dConvert.ServiceCode = oFind.ServiceCode;
             dConvert.ApiName = oFind.ApiName;
             dConvert.ServiceId = $"{oFind.Id}";
@@ -214,7 +230,7 @@ public class ShipmentController(
         {
             dConvert.ShipmentStatus = 0;
         }
-
+        dConvert.Customs ??= [];
         var valResult = await shipmentVal.ValidateAsync(dConvert);
         if (valResult.IsValid)
         {
@@ -231,7 +247,21 @@ public class ShipmentController(
                 };
                 return Results.Problem(problemServiceDetails);
             }
-
+            if ($"{oFind.ApiName}".Equals("gps", StringComparison.CurrentCultureIgnoreCase))
+            {
+                valResult = await shipmentVal.ValidateAsync(dConvert, options => { options.IncludeAllRuleSets(); });
+                if (!valResult.IsValid)
+                {
+                    var gpsProblemDetails = new HttpValidationProblemDetails(valResult.ToDictionary())
+                    {
+                        Status = StatusCodes.Status400BadRequest,
+                        Title = "Validation Failed",
+                        Detail = "One or more validation errors occurred.",
+                        Instance = "api/shipment"
+                    };
+                    return Results.Problem(gpsProblemDetails);
+                }
+            }
             dConvert.ServiceCode = oFind.ServiceCode;
             dConvert.ApiName = oFind.ApiName;
             dConvert.ServiceId = $"{oFind.Id}";
@@ -298,7 +328,7 @@ public class ShipmentController(
         {
             dConvert.ShipmentStatus = 0;
         }
-
+        dConvert.Customs ??= [];
         var valResult = await shipmentVal.ValidateAsync(dConvert);
         if (valResult.IsValid)
         {
@@ -315,7 +345,21 @@ public class ShipmentController(
                 };
                 return Results.Problem(problemServiceDetails);
             }
-
+            if ($"{oFind.ApiName}".Equals("gps", StringComparison.CurrentCultureIgnoreCase))
+            {
+                valResult = await shipmentVal.ValidateAsync(dConvert, options => { options.IncludeAllRuleSets(); });
+                if (!valResult.IsValid)
+                {
+                    var gpsProblemDetails = new HttpValidationProblemDetails(valResult.ToDictionary())
+                    {
+                        Status = StatusCodes.Status400BadRequest,
+                        Title = "Validation Failed",
+                        Detail = "One or more validation errors occurred.",
+                        Instance = "api/shipment"
+                    };
+                    return Results.Problem(gpsProblemDetails);
+                }
+            }
             dConvert.ServiceCode = oFind.ServiceCode;
             dConvert.ApiName = oFind.ApiName;
             dConvert.ServiceId = $"{oFind.Id}";

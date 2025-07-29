@@ -1,0 +1,79 @@
+﻿@page "/portal/report/balance"
+@using LeUs.Application.Features.Data.Queries
+@inject IRoleService RoleService
+@attribute [Authorize(Roles = RoleConstants.AccountingRole)]
+@attribute [StreamRendering]
+<PageTitle>Balances</PageTitle>
+<SectionContent SectionName="@NavConstants.TopLeft">
+    <Breadcrumb Slash="true"></Breadcrumb>
+    <Breadcrumb TextMuted="true">Balance</Breadcrumb>
+</SectionContent>
+@if (IsLoading)
+{
+    <LoadingRotate/>
+}
+<Card Title="List of Balance">
+    <ChildContent>
+        @if (_items == null || IsLoading)
+        {
+            <Loading/>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover table-rounded table-striped border gy-7 gs-7" id="@UiConstants.TableId">
+                    <thead>
+                    <tr class="fw-semibold fs-6 text-gray-800 border-bottom-2 border-gray-200">
+                        <th>User</th>
+                        <th>Amount</th>
+                        <th>Amount Deposit</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var item in _items)
+                    {
+                        <tr>
+                            <td class="min-w-200px">@SelectUsers.FirstOrDefault(w => w.id == $"{item.Id}")?.text</td>
+                            <td>@item.Amount.ToString("N2")</td>
+                            <td>@item.DepositAmount.ToString("N2")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </ChildContent>
+</Card>
+
+@code {
+    private List<UserBalance>? _items;
+    private List<RoleUserDto> SelectUsers = [];
+    
+    protected override async Task OnInitializedAsync()
+    {
+        var lstRole = await RoleService.GetByAsync("", 0, $"{DisplayConstants.Name}", $"{DisplayConstants.Name}");
+        SelectUsers = lstRole.Adapt<List<RoleUserDto>>();
+        await GetData();
+        InitDataTable = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (InitDataTable)
+        {
+            InitDataTable = false;
+            await CallInitialDataTableNoOrder(UiConstants.TableId);
+        }
+    }
+
+    private async Task GetData()
+    {
+        IsLoading = true;
+        StateHasChanged();
+        _items = await Mediator.Send(new GetBalanceQuery());
+        IsLoading = false;
+        InitDataTable = true;
+        StateHasChanged();
+    }
+
+}

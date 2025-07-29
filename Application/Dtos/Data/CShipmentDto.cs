@@ -73,6 +73,15 @@ public class CShipmentDto : AggregateRoot<Guid>, IShipment
         }
     }
 
+    public string Dimesion()
+    {
+        if (Boxes is { Count: 0 }) return "";
+        return Boxes!.Select(s => $"{s.Length}x{s.Width}x{s.Height}").Aggregate((a, b) => $"{a} {b}");
+    }
+
+    public double TotalPrice() => Price.PlusNumber(Remote).PlusNumber(OverLimitFee).PlusNumber(ExtraLongFee)
+        .PlusNumber(ExcessVolumeFee);
+
     public double CalculateVolumeWeight()
     {
         return Boxes?.Sum(s => s.Height * s.Length * s.Width) ?? 0;
@@ -84,6 +93,7 @@ public class CShipmentDto : AggregateRoot<Guid>, IShipment
         {
             UnitChanged();
         }
+
         if (Boxes is { Count: 0 }) return;
         foreach (var box in Boxes!)
         {
@@ -94,6 +104,7 @@ public class CShipmentDto : AggregateRoot<Guid>, IShipment
             {
                 IsOverSize = true;
             }
+
             if (aDim.Any(w => w > 30))
             {
                 OverLimitFee = 9;

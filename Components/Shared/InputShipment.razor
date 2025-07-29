@@ -19,107 +19,6 @@
     <FluentValidationValidator @ref="_fluentValidationValidator"/>
     <div class="card shadow-sm mb-6">
         <div class="card-header collapsible cursor-pointer rotate" data-bs-toggle="collapse"
-             data-bs-target="#card_basic">
-            <div class="card-title">
-                <h2>Basic Info</h2>
-            </div>
-            <div class="card-toolbar rotate-180">
-                <i class="ki-duotone ki-down fs-1"></i>
-            </div>
-        </div>
-        <div id="card_basic" class="collapse show">
-            <div class="card-body">
-                <div class="row mb-6">
-                    <div class="col-md-2">
-                        <label class="form-label required">Entry Point</label>
-                        <InputText type="text" @bind-Value="@Data.EntryPoint" class="form-control maxlength"
-                                   maxlength="50" id="entrypoint"/>
-                        <ValidationMessage For="@(() => Data.EntryPoint)"/>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label required">Service</label>
-                        <select class="form-select bg-light-warning" data-control="select2" data-id="service">
-                            <option value="">Select Item</option>
-                            @if (LService is { Count: > 0 })
-                            {
-                                foreach (var item in LService)
-                                {
-                                    <option value="@item.ServiceCode"
-                                            selected="@(item.ServiceCode == Data.ServiceCode)">@item.ServiceCode @item.ServiceName</option>
-                                }
-                            }
-                        </select>
-                        <ValidationMessage For="@(() => Data.ServiceCode)"/>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Ref 2</label>
-                        <InputText type="text" @bind-Value="@Data.ReferenceId2" class="form-control maxlength"
-                                   maxlength="50"/>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Ref 3</label>
-                        <InputText type="text" @bind-Value="@Data.ReferenceId3" class="form-control maxlength"
-                                   maxlength="50"/>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label"> Signature Required</label>
-                        <div class="d-flex flex-stack justify-content-start mt-4">
-                            <div class="form-check form-check-custom form-check-solid px-2">
-                                <input class="form-check-input" type="radio"
-                                       checked="@(Data.SignatureRequired == "Yes")"
-                                       @onchange="@(() => { Data.SignatureRequired = "Yes"; })" id="gSign"/>
-                                <label class="form-check-label" for="gSign">
-                                    Yes
-                                </label>
-                            </div>
-                            <div class="form-check form-check-custom form-check-solid px-2">
-                                <input class="form-check-input" type="radio" checked="@(Data.SignatureRequired == "No")"
-                                       @onchange="@(() => { Data.SignatureRequired = "No"; })" id="gSign1"/>
-                                <label class="form-check-label" for="gSign1">
-                                    No
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row mb-6">
-                    <div class="col-md-2">
-                        <label class="form-label">Duty Paid</label>
-                        <div class="d-flex flex-stack justify-content-start mt-4">
-                            <div class="form-check form-check-custom form-check-solid px-2">
-                                <input class="form-check-input" type="radio" checked="@(Data.DutyType == "DDP")"
-                                       @onchange="@(() => { Data.DutyType = "DDP"; })" id="gDuty"/>
-                                <label class="form-check-label" for="gDuty">
-                                    DDP
-                                </label>
-                            </div>
-                            <div class="form-check form-check-custom form-check-solid px-2">
-                                <input class="form-check-input" type="radio" checked="@(Data.DutyType == "DDU")"
-                                       @onchange="@(() => { Data.DutyType = "DDU"; })" id="gDuty1"/>
-                                <label class="form-check-label" for="gDuty1">
-                                    DDU
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label required">Package Type</label>
-                        <select class="form-select bg-light-warning" data-control="select2" data-id="package">
-                            <option value="doc" selected="@(Data.PackageType == "doc")">Document</option>
-                            <option value="pak" selected="@(Data.PackageType == "pak")">Package</option>
-                            <option value="wpx" selected="@(Data.PackageType == "wpx")">Package/Box</option>
-                        </select>
-                        <ValidationMessage For="@(() => Data.PackageType)"/>
-                    </div>
-                    <div class="col-md-2">
-                        <InputUnitType SelectItem="@Data.UnitType"/>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="card shadow-sm mb-6">
-        <div class="card-header collapsible cursor-pointer rotate" data-bs-toggle="collapse"
              data-bs-target="#card_basic1">
             <div class="card-title">
                 <h2>Consignee Info</h2>
@@ -165,6 +64,45 @@
         </div>
         <div id="card_basic4" class="collapse show">
             <div class="card-body">
+                <div class="row mb-6">
+                    <div class="col-md-3">
+                        <label class="form-label required">Service</label>
+                        <select class="form-select bg-light-warning" data-control="select2" data-id="service">
+                            <option value="">Select Item</option>
+                            @if (LService is { Count: > 0 })
+                            {
+                                foreach (var item in LService)
+                                {
+                                    <option value="@item.ServiceCode"
+                                            selected="@(item.ServiceCode == Data.ServiceCode)">@item.ServiceCode @item.ServiceName</option>
+                                }
+                            }
+                        </select>
+                        <ValidationMessage For="@(() => Data.ServiceCode)"/>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Ref 2</label>
+                        <InputText type="text" @bind-Value="@Data.ReferenceId2" class="form-control maxlength"
+                                   maxlength="50"/>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Ref 3</label>
+                        <InputText type="text" @bind-Value="@Data.ReferenceId3" class="form-control maxlength"
+                                   maxlength="50"/>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label required">Package Type</label>
+                        <select class="form-select bg-light-warning" data-control="select2" data-id="package">
+                            <option value="doc" selected="@(Data.PackageType == "doc")">Document</option>
+                            <option value="pak" selected="@(Data.PackageType == "pak")">Package</option>
+                            <option value="wpx" selected="@(Data.PackageType == "wpx")">Package/Box</option>
+                        </select>
+                        <ValidationMessage For="@(() => Data.PackageType)"/>
+                    </div>
+                    <div class="col-md-2">
+                        <InputUnitType SelectItem="@Data.UnitType"/>
+                    </div>
+                </div>
                 <DetailTemplate TItem="CManifestBox" Items="Data.Boxes" CaptionAdd="Add New Box"
                                 OnClickCallback="() => { AddEditBox(new CManifestBox(), 0); }" HasScroll="false">
                     <RowTemplate Context="item">
@@ -226,13 +164,57 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-1">
-                        <label class="form-label required">Currency</label>
+                        <label class="form-label">Entry Point</label>
+                        <InputText type="text" @bind-Value="@Data.EntryPoint" class="form-control maxlength"
+                                   maxlength="50" id="entrypoint"/>
+                        <ValidationMessage For="@(() => Data.EntryPoint)"/>
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label">Currency</label>
                         <InputText type="text" @bind-Value="@Data.CustomsCurrency" class="form-control maxlength"
                                    maxlength="3"/>
                         <ValidationMessage For="@(() => Data.EntryPoint)"/>
                     </div>
+                    <div class="col-md-2">
+                        <label class="form-label"> Signature Required</label>
+                        <div class="d-flex flex-stack justify-content-start mt-4">
+                            <div class="form-check form-check-custom form-check-solid px-2">
+                                <input class="form-check-input" type="radio"
+                                       checked="@(Data.SignatureRequired == "Yes")"
+                                       @onchange="@(() => { Data.SignatureRequired = "Yes"; })" id="gSign"/>
+                                <label class="form-check-label" for="gSign">
+                                    Yes
+                                </label>
+                            </div>
+                            <div class="form-check form-check-custom form-check-solid px-2">
+                                <input class="form-check-input" type="radio" checked="@(Data.SignatureRequired == "No")"
+                                       @onchange="@(() => { Data.SignatureRequired = "No"; })" id="gSign1"/>
+                                <label class="form-check-label" for="gSign1">
+                                    No
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Duty Paid</label>
+                        <div class="d-flex flex-stack justify-content-start mt-4">
+                            <div class="form-check form-check-custom form-check-solid px-2">
+                                <input class="form-check-input" type="radio" checked="@(Data.DutyType == "DDP")"
+                                       @onchange="@(() => { Data.DutyType = "DDP"; })" id="gDuty"/>
+                                <label class="form-check-label" for="gDuty">
+                                    DDP
+                                </label>
+                            </div>
+                            <div class="form-check form-check-custom form-check-solid px-2">
+                                <input class="form-check-input" type="radio" checked="@(Data.DutyType == "DDU")"
+                                       @onchange="@(() => { Data.DutyType = "DDU"; })" id="gDuty1"/>
+                                <label class="form-check-label" for="gDuty1">
+                                    DDU
+                                </label>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-
                 <DetailTemplate TItem="CCustom" Items="Data.Customs" CaptionAdd="Add New Box"
                                 OnClickCallback="() => { AddEditCustom(new CCustom(), 0); }" HasScroll="false">
                     <RowTemplate Context="item">
@@ -432,6 +414,10 @@
 
     private async Task Call(ActionCommandType action)
     {
+        var sApiName = LService?.FirstOrDefault(w => w.ServiceCode == Data.ServiceCode)?.ApiName;
+        var blnGps = $"{sApiName}" == "gps";
+        var isValid = _fluentValidationValidator.Validate(blnGps ? o => o.IncludeAllRuleSets() : null);
+        if (!isValid) return;
         if (LStores is { Count: > 0 })
         {
             var oFindStores = LStores?.Where(w => $"{w.ServiceCode}".Contains($"{Data.ServiceCode}")).ToList();
@@ -445,9 +431,6 @@
             }
         }
 
-
-        var isValid = _fluentValidationValidator.Validate(o => o.IncludeAllRuleSets());
-        if (!isValid) return;
         var data = new AddEditDataRequest<CShipmentDto>()
         {
             Data = Data,

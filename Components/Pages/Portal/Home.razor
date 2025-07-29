@@ -142,27 +142,40 @@
 @if (!IsLoading)
 {
     <div class="row mb-6">
-        <div class="col-md-8">
+        <div class="col-md-12 mb-6">
             <div class="card card-flush overflow-hidden h-md-100">
                 <div class="card-header py-5">
                     <h3 class="card-title align-items-start flex-column">
-                        <span class="card-label fw-bold text-gray-900">Statistics Shipment</span>
+                        <span class="card-label fw-bold text-gray-900">Statistics</span>
                     </h3>
                 </div>
                 <div class="card-body d-flex justify-content-between flex-column pb-1 px-0">
-                    <div id="charts_1" class="min-h-auto ps-4 pe-6" style="height: 300px"></div>
+                    <div id="charts_1" class="min-h-auto ps-4 pe-6" style="height: 500px"></div>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        
+        <div class="col-md-6">
             <div class="card card-flush overflow-hidden h-md-100">
                 <div class="card-header py-5">
                     <h3 class="card-title align-items-start flex-column">
-                        <span class="card-label fw-bold text-gray-900">Statistics Service</span>
+                        <span class="card-label fw-bold text-gray-900">Statistics Labels</span>
                     </h3>
                 </div>
                 <div class="card-body d-flex justify-content-between flex-column pb-1 px-0">
-                    <div id="charts_2" class="min-h-auto ps-4 pe-6" style="height: 300px"></div>
+                    <div id="charts_2" class="min-h-auto ps-4 pe-6" style="height: 400px"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card card-flush overflow-hidden h-md-100">
+                <div class="card-header py-5">
+                    <h3 class="card-title align-items-start flex-column">
+                        <span class="card-label fw-bold text-gray-900">Statistics Zone</span>
+                    </h3>
+                </div>
+                <div class="card-body d-flex justify-content-between flex-column pb-1 px-0">
+                    <div id="charts_3" class="min-h-auto ps-4 pe-6" style="height: 400px"></div>
                 </div>
             </div>
         </div>
@@ -179,21 +192,29 @@
                     }
                     <th>Service Code</th>
                     <th>Total Amount</th>
-                    <th>Other Amount</th>
                     <AuthorizeView Roles="@RoleConstants.AccountingRole">
                         <th>Cost</th>
                         <th>Profit</th>
                     </AuthorizeView>
-                    <th>Shipments</th>
-                    <th>Cancel Shipments</th>
-                    <th>Labels</th>
-                    <th>Void Labels</th>
+                    <th>Created</th>
+                    <th>Void</th>
                 </tr>
                 </thead>
                 <tbody>
-                @if (_items is { Count: > 0 })
+                @if (_activeItems is { Count: > 0 })
                 {
-                    foreach (var item in _items.OrderBy(o => o.TransDate).ThenBy(o => o.CustomerId))
+                    var tmpItem = _activeItems.GroupBy(g => new { g.TransDate, g.CustomerId, g.ServiceCode })
+                        .Select(s => new SumShipmentResponse()
+                        {
+                            CustomerId = s.Key.CustomerId,
+                            TransDate = s.Key.TransDate,
+                            ServiceCode = s.Key.ServiceCode,
+                            Amount = s.Sum(sm=>sm.TotalAmount *(sm.Status == 3 ? 0 : 1)),
+                            Cost = s.Sum(sm=>sm.Cost *(sm.Status == 2 ? 1 : 0)),
+                            GenerateLabelNo = s.Sum(sm=>sm.GenerateLabelNo),
+                            CancelLabelNo = s.Sum(sm=>sm.CancelLabelNo),
+                        }).OrderByDescending(o=>o.TransDate).ToList();
+                    foreach (var item in tmpItem)
                     {
                         <tr>
                             <td>@item.TransDate.ToDmy()</td>
@@ -202,14 +223,11 @@
                                 <td>@_customers.FirstOrDefault(w => w.Id.ToString() == item.CustomerId)?.Name</td>
                             }
                             <td>@item.ServiceCode</td>
-                            <td>@((item.Amount * (item.Status == 3 ? 0 : 1)).ToString("N2"))</td>
-                            <td>@(((item.TotalAmount - item.Amount) * (item.Status == 3 ? 0 : 1)).ToString("N2"))</td>
+                            <td>@item.TotalAmount.ToString("N2")</td>
                             <AuthorizeView Roles="@RoleConstants.AccountingRole">
-                                <td>@((item.Cost * (item.Status == 2 ? 1 : 0)).ToString("N2"))</td>
-                                <td>@((item.Profit * (item.Status == 2 ? 1 : 0)).ToString("N2"))</td>
+                                <td>@item.Cost.ToString("N2")</td>
+                                <td>@item.Profit.ToString("N2")</td>
                             </AuthorizeView>
-                            <td>@(item.ActiveNo + item.DeActiveNo)</td>
-                            <td>@(item.DeActiveNo)</td>
                             <td>@item.GenerateLabelNo</td>
                             <td>@item.CancelLabelNo</td>
                         </tr>
@@ -232,11 +250,12 @@
     };
 
     private List<SumShipmentResponse>? _items = [];
+    private List<SumShipmentResponse>? _activeItems = [];
     private bool _initChart = false;
 
     protected override void OnInitialized()
     {
-        DateRange = "".InitDateRange(iEnd: -3);
+        DateRange = "".InitDateRange(iEnd: -6);
         IsLoading = true;
         _request.UserId = $"{ShareUserInfo?.UserId}";
         base.OnInitialized();
@@ -267,41 +286,32 @@
         if (_initChart)
         {
             _initChart = false;
-            if (_items is { Count: > 0 })
+            if (_activeItems is { Count: > 0 })
             {
-                _items = _items.OrderBy(o => o.TransDate).ToList();
-                var tmpGroup = _items.GroupBy(g => g.TransDate).Select(s => new
+                _activeItems = _activeItems.OrderBy(o => o.TransDate).ToList();
+                var tmpStack = _activeItems.GroupBy(g => g.TransDate).Select(s => new
                 {
-                    TransDate = s.Key,
-                    Amount = s.Sum(sm => sm.TotalAmount).ToRound(2)
+                    d = s.Key.ToDdMmm(),
+                    td = s.Key,
+                    a = s.Sum(sm=>sm.TotalAmount *(sm.Status == 2 ? 1 : 0)),
+                    g = s.Sum(sm => sm.GenerateLabelNo),
+                    c = s.Sum(sm => sm.CancelLabelNo),
                 }).ToList();
-                var tmpGroup1 = _items.GroupBy(g => g.ServiceCode).Select(s => new
+                var tmpZone = _activeItems.GroupBy(g => g.State).Select(s => new
                 {
-                    Service = s.Key,
-                    Count = s.Sum(sm => sm.ActiveNo)
+                    id = $"US-{s.Key}",
+                    value = s.Sum(sm => sm.GenerateLabelNo)
                 }).ToList();
-                var aData = tmpGroup.Select(s => s.Amount).ToList();
-                aData.Insert(0, 0);
-                var dataChart = new List<DataChartResponse>()
-                {
-                    new()
-                    {
-                        Data = aData
-                    }
-                };
-                var cat = tmpGroup.Select(s => s.TransDate.ToDdMmm()).ToList();
-                cat.Insert(0, "");
-                var aData1 = tmpGroup1.Select(s => s.Count).ToList();
-                var cat1 = tmpGroup1.Select(s => s.Service).ToList();
-                await CallJs("initChartLine", "charts_1", dataChart, cat);
-                await CallJs("initChartDotNut", "charts_2", aData1, cat1);
+                await CallJs("initChartMix", "charts_1", tmpStack);
+                await CallJs("initChartStack", "charts_2", tmpStack);
+                await CallJs("initChartZone", "charts_3", tmpZone);
             }
         }
 
         if (InitDataTable)
         {
             InitDataTable = false;
-            await CallInitialDataTable();
+            await CallInitialDataTableNoOrder(UiConstants.TableId);
         }
     }
 
@@ -314,6 +324,7 @@
         {
             Input = _request
         });
+        _activeItems = _items.Where(w => w.Status is 2 or 3).ToList();
         IsLoading = false;
         InitDataTable = true;
         _initChart = true;

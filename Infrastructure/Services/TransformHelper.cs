@@ -42,22 +42,26 @@ public static class TransformHelper
                 width = s.Width,
                 length = s.Length,
             }).FirstOrDefault(),
-            customs_form = item.Customs?.Select(s => new UCustomForm()
-            {
-                description = s.DestDescription,
-                quantity = s.Qty,
-                value = s.UnitValue,
-                origin_country_code = s.OriginCountryCode,
-                hts_code = s.HsCode
-            }).ToList(),
             weight = item.Weight ?? 0,
-            service = item.ServiceCode
+            service = item.ServiceCode,
+            confirmation = item.SignatureRequired
         };
         if (item.ServiceCode == "FEDEX_SMARTPOST" || item.ServiceCode == "FEDEX_GROUND")
         {
             result.package = "YOUR_PACKAGING";
         }
 
+        if (item.Customs is { Count: > 0 })
+        {
+            result.customs_form = item.Customs?.Select(s => new UCustomForm()
+            {
+                description = s.DestDescription,
+                quantity = s.Qty,
+                value = s.UnitValue,
+                origin_country_code = s.OriginCountryCode,
+                hts_code = s.HsCode
+            }).ToList();
+        }
         switch (item.UnitType)
         {
             case 0:
@@ -150,7 +154,11 @@ public static class TransformHelper
                         : (decimal)(itemBox.Weight * (item.UnitType == 0 ? 16 : 1)),
                 }).ToArray()
             },
-            CustomsData = new CustomsData
+            GetRate = true
+        };
+        if (item.Customs is { Count: > 0 })
+        {
+            result.CustomsData = new CustomsData
             {
                 PackageValue = (decimal)(item.Customs?.Sum(s => s.UnitValue) ?? 0),
                 PackageDescription = item.Customs?.FirstOrDefault()?.DestDescription,
@@ -165,9 +173,8 @@ public static class TransformHelper
                     ItemCode = s.Sku,
                     CountryOfOrigin = s.OriginCountryCode
                 }).ToArray()
-            },
-            GetRate = true
-        };
+            };
+        }
         switch (item.UnitType)
         {
             case 0:
@@ -181,6 +188,34 @@ public static class TransformHelper
                 break;
         }
 
+        if (item.SignatureRequired.NotIsNullOrEmpty() && result.PackageDetail.Packages is{Length: > 0} )
+        {
+            var signNature = SignatureType.SERVICE_DEFAULT;
+            var sSignNaure = $"{item.SignatureRequired}".ToUpper();
+            if (sSignNaure.Contains("ADULT_SIGNATURE"))
+            {
+                signNature = SignatureType.ADULT;
+            }
+            else if (sSignNaure.Contains("NO_SIGNATURE"))
+            {
+                signNature = SignatureType.NO_SIGNATURE_REQUIRED;
+            }
+            else if (sSignNaure.Contains("INDIRECT_SIGNATURE"))
+            {
+                signNature = SignatureType.INDIRECT;
+            }
+            else if (sSignNaure.Contains("DIRECT_SIGNATURE"))
+            {
+                signNature = SignatureType.DIRECT;
+            }
+            result.PackageDetail.Packages[0].SpecialServices = new SpecialServicesData()
+            {
+                SignatureOptionData = new SignatureOptionInfo()
+                {
+                    SignatureType = signNature,
+                }
+            };
+        }
         return result;
     }
 

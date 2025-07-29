@@ -51,15 +51,12 @@
                                 </span>
                                 <span class="menu-title">Import Shipments</span>
                             </NavLink>
-                            <div class="menu-item">
-                                <NavLink class="menu-link" href="/portal/top-up">
-                                <span class="menu-bullet">
-                                    <span class="bullet bullet-dot"></span>
-                                </span>
-                                    <span class="menu-title">Top Up</span>
-                                </NavLink>
-                            </div>
                         </div>
+                    </div>
+                    <div class="menu-item">
+                        <NavLink class="menu-link" href="/portal/top-up">
+                            <span class="menu-title">Top Up</span>
+                        </NavLink>
                     </div>
                     <div data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="bottom-start"
                          class="menu-item menu-lg-down-accordion menu-sub-lg-down-indention me-0 me-lg-2">
@@ -84,6 +81,16 @@
                                     <span class="menu-title">Shipment</span>
                                 </NavLink>
                             </div>
+                            <AuthorizeView Roles="@RoleConstants.AccountingRole">
+                                <div class="menu-item">
+                                    <NavLink class="menu-link" href="/portal/report/balance">
+                                    <span class="menu-bullet">
+                                        <span class="bullet bullet-dot bg-info"></span>
+                                    </span>
+                                        <span class="menu-title">Balances</span>
+                                    </NavLink>
+                                </div>
+                            </AuthorizeView>
                         </div>
                     </div>
                     <AuthorizeView Roles="@RoleConstants.AccountingRole">
@@ -209,9 +216,16 @@
                                         </div>
                                         <div class="menu-item">
                                             <NavLink href="role" class="menu-link">
+                                                <span class="menu-bullet">
+                                                    <span class="bullet bullet-dot"></span>
+                                                </span><span class="menu-title">Set Rights</span>
+                                            </NavLink>
+                                        </div>
+                                        <div class="menu-item">
+                                            <NavLink href="/portal/report/log-shipment" class="menu-link">
                                             <span class="menu-bullet">
                                                 <span class="bullet bullet-dot"></span>
-                                            </span><span class="menu-title">Set Rights</span>
+                                            </span><span class="menu-title">Log Reports</span>
                                             </NavLink>
                                         </div>
                                     </div>
@@ -280,7 +294,7 @@
                             <div class="menu-item px-3">
                                 <div class="menu-content d-flex align-items-center px-3">
                                     <div class="symbol symbol-50px me-5">
-                                        
+
                                     </div>
                                     <div class="d-flex flex-column">
                                         <div class="fw-bold d-flex align-items-center fs-5">
@@ -319,7 +333,8 @@
                     </div>
                 </div>
                 <div class="app-navbar-item d-flex align-items-center d-lg-none ms-1 me-n2">
-                    <div class="btn btn-flex btn-icon btn-active-color-primary w-30px h-30px" id="kt_app_header_menu_toggle">
+                    <div class="btn btn-flex btn-icon btn-active-color-primary w-30px h-30px"
+                         id="kt_app_header_menu_toggle">
                         <i class="ki-duotone ki-element-4 fs-1">
                             <span class="path1"></span><span class="path2"></span>
                         </i>

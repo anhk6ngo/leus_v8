@@ -1,0 +1,117 @@
+﻿@page "/portal/report/log-shipment"
+@attribute [Authorize(Roles = RoleConstants.AdministratorRole)]
+@attribute [StreamRendering]
+<SectionContent SectionName="@NavConstants.TopLeft">
+    <Breadcrumb Slash="true"></Breadcrumb>
+    <Breadcrumb TextMuted="true">Logs Reports</Breadcrumb>
+</SectionContent>
+<SectionContent SectionName="@NavConstants.TopRight">
+    <div class="d-flex flex-row-auto">
+        <input @bind="DateRange" class="form-control form-control-sm w-200px mx-2" placeholder="Pick date range"
+               id="RangeDate"/>
+        <button class="btn btn-sm btn-primary w-100" @onclick="GetData">Get Data</button>
+    </div>
+</SectionContent>
+
+@if (IsLoading)
+{
+    <LoadingRotate/>
+}
+else
+{
+    <Card Title="List of Shipment">
+        <ToolbarRight>
+            <div class="d-flex flex-stack">
+                <div class="form-check me-2">
+                    <input class="form-check-input" type="radio" value="0" checked="@(_request.TypeReport == 0)"
+                           id="flexState"
+                           name="rdoState" @onchange="() => _request.TypeReport = 0">
+                    <label class="form-check-label" for="flexState">
+                        Error
+                    </label>
+                </div>
+                <div class="form-check me-2">
+                    <input class="form-check-input" type="radio" checked="@(_request.TypeReport == 1)" value="1"
+                           id="flexState1"
+                           name="rdoState" @onchange="() => _request.TypeReport = 1">
+                    <label class="form-check-label" for="flexState1">
+                        Success
+                    </label>
+                </div>
+            </div>
+        </ToolbarRight>
+        <ChildContent>
+            @if (_items != null)
+            {
+                <table class="table table-hover table-rounded table-striped border gy-7 gs-7 nowrap w-100"
+                       id="@UiConstants.TableId">
+                    <thead>
+                    <tr class="fw-semibold fs-6 text-gray-800 border-bottom-2 border-gray-200">
+                        <th>Date</th>
+                        <th>No</th>
+                        <th>Api</th>
+                        <th>Response</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var item in _items)
+                    {
+                        <tr>
+
+                            <td>@item.CreatedOn</td>
+                            <td>@item.ReferenceId</td>
+                            <td>@item.ApiName</td>
+                            <td>@item.Response</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            }
+        </ChildContent>
+    </Card>
+}
+
+@code {
+    private List<LogResult>? _items;
+    private GetReportRequest _request = new()
+    {
+    };
+
+    protected override void OnInitialized()
+    {
+        DateRange = "".InitDateRange(iEnd: 0);
+        base.OnInitialized();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await CallInitRangeDate();
+        }
+
+        if (InitDataTable)
+        {
+            InitDataTable = false;
+            await CallInitialDataTableNoOrder(@UiConstants.TableId);
+        }
+    }
+
+
+    private async Task GetData()
+    {
+        IsLoading = true;
+        StateHasChanged();
+        _request.DateRange = DateRange;
+        _request.Export = false;
+        _items = await Mediator.Send(new GetLogShipmentReportQuery()
+        {
+            DateRange = _request.DateRange,
+            TypeReport = _request.TypeReport,
+        });
+        _items = _items.OrderByDescending(o => o.CreatedOn).ToList();
+        IsLoading = false;
+        InitDataTable = true;
+        StateHasChanged();
+    }
+}
