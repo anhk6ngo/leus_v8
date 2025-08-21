@@ -23,8 +23,8 @@ internal class AddEditShipmentCommandHandler(
         // {
         //     dCost = await leUsService.GetRate(command.Request.Data);
         // }
-
-        command.Request.Data?.CalOverSizeFee();
+        var iType = GetTypeFee($"{command.Request.Data?.ServiceCode}".ToLower());
+        command.Request.Data?.CalOverSizeFee(iType);
         switch (command.Request.Action)
         {
             case ActionCommandType.Add:
@@ -160,5 +160,10 @@ internal class AddEditShipmentCommandHandler(
                 break;
         }
         return await Result<AddEditShipmentResponse>.FailAsync("Not found the item");
+    }
+
+    private int GetTypeFee(string serviceCode)
+    {
+        return serviceCode.Contains("fedex") ? 1 : 0;
     }
 }

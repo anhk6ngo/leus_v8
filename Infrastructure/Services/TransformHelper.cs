@@ -1,5 +1,6 @@
 ﻿using FirstMile;
 using LeUs.Application.Dtos.UnitedBridge;
+using OfficeOpenXml.FormulaParsing.Excel.Functions.Logical;
 
 namespace LeUs.Infrastructure.Services;
 
@@ -43,14 +44,17 @@ public static class TransformHelper
                 length = s.Length,
             }).FirstOrDefault(),
             weight = item.Weight ?? 0,
-            service = item.ServiceCode,
-            confirmation = item.SignatureRequired
+            service = item.ServiceCode
         };
         if (item.ServiceCode == "FEDEX_SMARTPOST" || item.ServiceCode == "FEDEX_GROUND")
         {
             result.package = "YOUR_PACKAGING";
         }
 
+        if (item.SignatureRequired.NotIsNullOrEmpty())
+        {
+            result.confirmation = item.SignatureRequired;
+        }
         if (item.Customs is { Count: > 0 })
         {
             result.customs_form = item.Customs?.Select(s => new UCustomForm()

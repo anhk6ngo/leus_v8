@@ -408,7 +408,12 @@ else
     private void FilterBy()
     {
         lstCheckship = [];
-        _itemsFilter = iState == 0 ? _items?.Where(w => w.ShipmentStatus < 2).ToList() : _items?.Where(w => w.ShipmentStatus == (iState + 1)).ToList();
+        _itemsFilter = iState switch
+        {
+            0 => _items?.Where(w => w.ShipmentStatus < 2).ToList(),
+            1 => _items?.Where(w => w.ShipmentStatus == 2).ToList(),
+            _ => _items?.Where(w => w.ShipmentStatus is 3 or 5).ToList()
+        };
         ShowHideLoading(isShow: false, initTable: true);
     }
 
@@ -498,6 +503,7 @@ else
         _labelResults = await LeUsService.CancelShipment(selectRefId.ToList(), ShareUserInfo?.UserId);
         ShowHideLoading(isShow: false, initTable: true);
         await ToggleModal();
+        await GetData();
     }
 
     private async Task OnSaveChange(AddEditDataRequest<CShipmentDto> arg)
@@ -571,4 +577,5 @@ else
         });
         ShowHideLoading(isShow: false, initTable: true);
     }
+
 }

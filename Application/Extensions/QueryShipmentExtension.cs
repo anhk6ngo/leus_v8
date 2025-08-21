@@ -24,17 +24,20 @@ public static class QueryShipmentExtension
         ApplyLabelDate(this IQueryable<CShipment> query, DateTime dFrom, DateTime dTo, int iStatus, string? userId) =>
         query.Where(w =>
             (iStatus == 2 ? w.CreateLabelDate : w.CancelLabelDate) >= dFrom &&
-            (iStatus == 2 ? w.CreateLabelDate : w.CancelLabelDate) <= dTo && w.ShipmentStatus == iStatus &&
-            (userId.IsNullOrEmpty() || w.CreatedBy== userId));
+            (iStatus == 2 ? w.CreateLabelDate : w.CancelLabelDate) <= dTo && (iStatus == 4
+                ? w.ShipmentStatus == 3 || w.ShipmentStatus == 5
+                : w.ShipmentStatus == iStatus) &&
+            (userId.IsNullOrEmpty() || w.CreatedBy == userId));
 
     public static IQueryable<CShipment> ApplyStatus(this IQueryable<CShipment> query, int status) =>
         query.Where(w => w.ShipmentStatus == status);
-    
+
     public static IQueryable<CTopUpDto>
-        ApplyTopUp(this IQueryable<CTopUp> query, DateTime dFrom, DateTime dTo, int iStatus, string? userId="") =>
+        ApplyTopUp(this IQueryable<CTopUp> query, DateTime dFrom, DateTime dTo, int iStatus, string? userId = "") =>
         query.Where(w => w.IsActive && w.CreatedOn >= dFrom && w.CreatedOn <= dTo &&
-            (userId.IsNullOrEmpty() || w.UserId== userId) &&
-            (iStatus == 0 || w.Status == iStatus)).ProjectToType<CTopUpDto>();
+                         (userId.IsNullOrEmpty() || w.UserId == userId) &&
+                         (iStatus == 0 || w.Status == iStatus)).ProjectToType<CTopUpDto>();
+
     public static IQueryable<LogResult> GetLogShipment(this IQueryable<CHistoryLabel> query, DateTime dateFrom,
         DateTime dateTo, bool status) =>
         query.Where(w => w.CratedOn >= dateFrom && w.CratedOn <= dateTo && w.Status == status)

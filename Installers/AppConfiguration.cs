@@ -12,8 +12,8 @@ namespace LeUs.Installers
             });
             app.MapScalarApiReference(opt =>
             {
-                opt.Title = "Scalar Example";
-                opt.Theme = ScalarTheme.Mars;
+                opt.Title = "LeUs Logistics Company";
+                opt.Theme = ScalarTheme.BluePlanet;
                 opt.DefaultHttpClient = new(ScalarTarget.Http, ScalarClient.Http11);
             });
             if (app.Environment.IsDevelopment())

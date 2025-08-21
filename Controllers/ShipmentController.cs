@@ -146,7 +146,7 @@ public class ShipmentController(
     [ProducesResponseType<Result<AddEditShipmentResponse>>(StatusCodes.Status200OK, "application/json")]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
     [EndpointSummary("1. Create new Shipment")]
-    public async Task<IHttpResult> Post(ShipmentDto request)
+    public async Task<IHttpResult> Post(ShipmentInput request)
     {
         var dConvert = new CShipmentDto();
         request.Adapt(dConvert);
@@ -222,7 +222,7 @@ public class ShipmentController(
     [ProducesResponseType<Result<AddEditShipmentResponse>>(StatusCodes.Status200OK, "application/json")]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
     [EndpointSummary("3. Create new Shipment and generate label")]
-    public async Task<IHttpResult> CreateLabelPost(ShipmentDto request)
+    public async Task<IHttpResult> CreateLabelPost(ShipmentInput request)
     {
         var dConvert = new CShipmentDto();
         request.Adapt(dConvert);
@@ -316,13 +316,16 @@ public class ShipmentController(
         return Results.Problem(problemDetails);
     }
 
-    [HttpPut]
+    [HttpPut("{id}")]
     [ProducesResponseType<Result<AddEditShipmentResponse>>(StatusCodes.Status200OK, "application/json")]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
     [EndpointSummary("2. Update Shipment")]
-    public async Task<IHttpResult> Put(ShipmentDto request)
+    public async Task<IHttpResult> Put(Guid id, ShipmentInput request)
     {
-        var dConvert = new CShipmentDto();
+        var dConvert = new CShipmentDto()
+        {
+            Id = id
+        };
         request.Adapt(dConvert);
         if (dConvert.ShipmentStatus != 0)
         {
@@ -547,5 +550,16 @@ public class ShipmentController(
         });
         
         return Ok(balance);
+    }
+    
+    [HttpGet("get-all-balance")]
+    [ProducesResponseType<UserBalanceDto>(StatusCodes.Status200OK, "application/json")]
+    [EndpointSummary("Get All Balance")]
+    [Authorize(Roles = RoleConstants.AccountingRole)]
+    [ApiExplorerSettings(IgnoreApi = true)]
+    public async Task<IActionResult> GetAllBalance()
+    {
+        var balances = await _mediator!.Send(new GetBalanceQuery());
+        return Ok(balances);
     }
 }

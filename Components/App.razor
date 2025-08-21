@@ -669,7 +669,7 @@
             }));
 
 
-            function makeSeries(name, fieldName) {
+            function makeSeries(name, fieldName, color) {
                 let series = chart.series.push(am5xy.ColumnSeries.new(root, {
                     name: name,
                     stacked: true,
@@ -681,6 +681,8 @@
                 }));
 
                 series.columns.template.setAll({
+                    fill: am5.color(color),
+                    stroke: am5.color(color),
                     tooltipText: "{name}, {categoryX}:{valueYTotalPercent.formatNumber('#.#')}%",
                     tooltipY: am5.percent(10)
                 });
@@ -703,8 +705,8 @@
                 legend.data.push(series);
             }
 
-            makeSeries("Created", "g");
-            makeSeries("Void", "c");
+            makeSeries("Void", "c", 0xff7f0e);
+            makeSeries("Created", "g", 0x139fb5);
             chart.appear(1000, 100);
         });
     }
@@ -848,33 +850,51 @@
     window.initChartZone = (id, data) => {
         am5.ready(function () {
             let root = am5.Root.new(id);
-            root.setThemes([am5themes_Animated.new(root)]);
-            let chart = root.container.children.push(
-                am5map.MapChart.new(root, {
-                    panX: "rotateX",
-                    panY: "rotateY",
-                    projection: am5map.geoAlbersUsa()
-                })
-            );
-            let polygonSeries = chart.series.push(
-                am5map.MapPolygonSeries.new(root, {
-                    geoJSON: am5geodata_usaLow,
-                    valueField: "value",
-                    calculateAggregates: true
-                })
-            );
-            polygonSeries.data.setAll(data);
+            let chart = root.container.children.push(am5map.MapChart.new(root, {
+                projection: am5map.geoAlbersUsa(),
+            }));
+
+            let polygonSeries = chart.series.push(am5map.MapPolygonSeries.new(root, {
+                geoJSON: am5geodata_usaLow,
+                valueField: "value",
+                calculateAggregates: true
+            }));
+
+            polygonSeries.mapPolygons.template.setAll({
+                tooltipText: "{name}: {value}"
+            });
+
             polygonSeries.set("heatRules", [{
                 target: polygonSeries.mapPolygons.template,
                 dataField: "value",
-                min: am5.color(0xE5E5FF),
-                max: am5.color(0x000066),
+                min: am5.color(0xd3a29f),
+                max: am5.color(0x6f0600),
                 key: "fill"
             }]);
-            polygonSeries.mapPolygons.template.setAll({
-                tooltipText: "{name}: {value}",
-                interactive: true
+            polygonSeries.data.setAll(data);
+
+            let bubbleSeries = chart.series.push(
+                am5map.MapPointSeries.new(root, {
+                    valueField: "value",
+                    calculateAggregates: true,
+                    polygonIdField: "id"
+                })
+            );
+
+            bubbleSeries.bullets.push(function(root, series, dataItem) {
+                return am5.Bullet.new(root, {
+                    sprite: am5.Label.new(root, {
+                        text: "{value.formatNumber('#.')}",
+                        fill: am5.color(0xffffff),
+                        populateText: true,
+                        centerX: am5.p50,
+                        centerY: am5.p50,
+                        textAlign: "center"
+                    }),
+                    dynamic: true
+                });
             });
+            bubbleSeries.data.setAll(data);
         });
     }
 </script>

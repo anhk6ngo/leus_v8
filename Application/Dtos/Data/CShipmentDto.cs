@@ -87,7 +87,7 @@ public class CShipmentDto : AggregateRoot<Guid>, IShipment
         return Boxes?.Sum(s => s.Height * s.Length * s.Width) ?? 0;
     }
 
-    public void CalOverSizeFee()
+    public void CalOverSizeFee(int iType = 0)
     {
         if (UnitType > 0)
         {
@@ -105,13 +105,24 @@ public class CShipmentDto : AggregateRoot<Guid>, IShipment
                 IsOverSize = true;
             }
 
-            if (aDim.Any(w => w > 30))
+            switch (iType)
             {
-                OverLimitFee = 9;
-            }
-            else if (aDim.Any(w => w > 22))
-            {
-                ExtraLongFee = 5;
+                case 1:
+                    if (aDim.Any(w => w > 27) || aDim.Count(w => w > 17) > 1)
+                    {
+                        ExtraLongFee = 6.88;
+                    }
+                    break;
+                default:
+                    if (aDim.Any(w => w > 30))
+                    {
+                        OverLimitFee = 9;
+                    }
+                    else if (aDim.Any(w => w > 22))
+                    {
+                        ExtraLongFee = 5;
+                    }
+                    break;
             }
         }
     }

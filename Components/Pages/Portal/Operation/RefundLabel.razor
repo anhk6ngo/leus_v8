@@ -1,0 +1,116 @@
+﻿@page "/portal/refund-label"
+@inject IExcelService ExcelService
+@attribute [Authorize(Roles = $"{RoleConstants.InputCatalog},{RoleConstants.AdministratorRole}")]
+<PageTitle>Refund Labels</PageTitle>
+<SectionContent SectionName="@NavConstants.TopLeft">
+    <Breadcrumb Slash="true"></Breadcrumb>
+    <Breadcrumb TextMuted="true">Refund Labels</Breadcrumb>
+</SectionContent>
+@if (IsLoading)
+{
+    <LoadingRotate/>
+}
+<Card OnlyCardBody="true">
+    <div class="row">
+        <div class="col-md-6">
+            <Upload IsLoading="IsLoading" BtnClass="btn-custom" IsLoadingFile="IsLoadingFile"
+                    OnChangeUpload="OnChangeLoadFile" OnUploadFileCallback="UploadFile"
+                    ShowDownload="false"/>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Status</label>
+            <div class="d-flex flex-stack mt-8">
+                <div class="form-check me-2">
+                    <input class="form-check-input" type="radio" value="0"
+                           checked="@(iType == 0)"
+                           name="rdoRef" @onchange="() => { iType = 0; }" id="flexState">
+                    <label class="form-check-label" for="flexState">
+                        Refunded
+                    </label>
+                </div>
+                <div class="form-check me-2">
+                    <input class="form-check-input" type="radio" value="0"
+                           checked="@(iType == 1)"
+                           name="rdoRef" @onchange="() => { iType = 1; }" id="flexState1">
+                    <label class="form-check-label" for="flexState1">
+                        Request Refund
+                    </label>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</Card>
+
+@code {
+    private List<IBrowserFile> _loadedFiles = new();
+    private int iType = 0;
+    private UploadCommandRequest _uploadRequest = new()
+    {
+        TypeUpload = 3,
+        Files = new List<UploadRequest>(),
+    };
+   
+    private void OnChangeLoadFile(InputFileChangeEventArgs e)
+    {
+        IsLoadingFile = true;
+        _loadedFiles.Clear();
+        foreach (var file in e.GetMultipleFiles(20))
+        {
+            try
+            {
+                _loadedFiles.Add(file);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        IsLoadingFile = false;
+    }
+
+    public async Task UploadFile(MouseEventArgs eventArgs)
+    {
+        var isConfirm = await Confirm("Do you want to upload excel file");
+        if (!isConfirm) return;
+        IsLoading = true;
+        StateHasChanged();
+        long maxFileSize = 1024 * 1024 * 20;
+        var upload = false;
+
+        foreach (var iFile in _loadedFiles)
+        {
+            try
+            {
+                var memoryStream = new MemoryStream();
+                await iFile.OpenReadStream(maxFileSize).CopyToAsync(memoryStream);
+                _uploadRequest.Files!.Add(new UploadRequest()
+                {
+                    Data = memoryStream.ToArray(),
+                    FileName = iFile.Name,
+                    
+                });
+                upload = true;
+            }
+            catch (Exception ex)
+            {
+                await ShowAlert(ex.Message, 1);
+                return;
+            }
+        }
+
+        if (upload)
+        {
+            _uploadRequest.IsCheck = iType == 0;
+            var results = await ExcelService.UpLoad(_uploadRequest);
+            foreach (var uploadResult in results)
+            {
+                await ShowAlert($"{uploadResult.FileName}", uploadResult.Uploaded ? 0 : 1);
+            }
+        }
+
+        _uploadRequest.Files = new List<UploadRequest>();
+        IsLoading = false;
+    }
+}

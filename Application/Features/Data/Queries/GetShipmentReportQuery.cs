@@ -14,7 +14,14 @@ internal class GetShipmentReportQueryHandler(IUnitOfWork<Guid, PortalContext> un
         CancellationToken cancellationToken)
     {
         var oDateRange = $"{request.DateRange}".ConvertRangeDate(lastday: true, isUtc: true);
-        var iStatus = request.TypeReport == 0 ? 2 : 3;
+        
+        var iStatus = request.TypeReport switch
+        {
+            1 => 4,
+            2 => 3,
+            3 => 5,
+            _ => 2
+        };
         var result = await unitOfWork.RepositoryNew<CShipment>().Entities.AsNoTracking()
             .ApplyLabelDate(oDateRange.dFrom, oDateRange.dTo, iStatus, request.UserId)
             .ProjectToType<CShipmentReport>()

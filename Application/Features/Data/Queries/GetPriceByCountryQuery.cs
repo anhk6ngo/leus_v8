@@ -22,7 +22,7 @@ internal class GetPriceByCountryQueryHandler(IMediator mediator)
             result.ApiName = oFind.ApiName;
             blnCubic = oFind.UseCubic;
         }
-
+        
         var prices = await mediator.Send(new GetAllSellingPriceQuery(), cancellationToken);
         prices = prices.Where(w =>
                 w.ServiceId == request.Data.ServiceId && w.UnitType == request.Data.UnitType
@@ -60,20 +60,23 @@ internal class GetPriceByCountryQueryHandler(IMediator mediator)
 
         dChargeWeight = dChargeWeight.ToRound(2);
         dCubitWeight = dCubitWeight.ToRound(2);
-        switch (dCubitWeight)
+        if (blnCubic)
         {
-            case < 1 when blnCubic:
-                dChargeWeight = request.Data.NetWeight.ToRound(2);
-                break;
-            case > 2:
-                result.ExcessVolumeFee = 19;
-                break;
+            switch (dCubitWeight)
+            {
+                case < 1:
+                    dChargeWeight = request.Data.NetWeight.ToRound(2);
+                    break;
+                case > 2:
+                    result.ExcessVolumeFee = 19;
+                    break;
+            }
         }
-
+        
         var blnHasCubit = price.MaxCubic > 0 && dCubitWeight <= price.MaxCubic;
 
         var oPriceDetails = price.Details?.Where(w =>
-                w.Min <= dChargeWeight && (dChargeWeight <= w.Max || w.Max == 0) && w.GoodType == iPackageType &&
+                w.Min < dChargeWeight && (dChargeWeight <= w.Max || w.Max == 0) && w.GoodType == iPackageType &&
                 w.ChargeWeightType == 0)
             .ToList();
         var dPriceMin = 0.0;
@@ -119,7 +122,7 @@ internal class GetPriceByCountryQueryHandler(IMediator mediator)
         if (!blnHasCubit) return result;
         //Find min cubit price
         oPriceDetails = price.Details?.Where(w =>
-                w.Min <= dCubitWeight && (dCubitWeight <= w.Max || w.Max == 0) && w.GoodType == iPackageType &&
+                w.Min < dCubitWeight && (dCubitWeight <= w.Max || w.Max == 0) && w.GoodType == iPackageType &&
                 w.ChargeWeightType == 1)
             .ToList();
         foreach (var oDetail in oPriceDetails!)

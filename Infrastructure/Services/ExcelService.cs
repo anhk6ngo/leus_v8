@@ -31,6 +31,7 @@ public class ExcelService(
                 {
                     1 => await AddShipments(worksheet, $"{request.UserId}"),
                     2 => await AddPriceData(worksheet),
+                    3 => await AddRefundData(worksheet, request.IsCheck),
                     _ => false
                 };
                 result.Add(new UploadResult()
@@ -88,7 +89,7 @@ public class ExcelService(
                     City = $"{worksheet.Cells[$"S{row}"].Value}",
                     State = $"{worksheet.Cells[$"T{row}"].Value}",
                     Zip = $"{worksheet.Cells[$"U{row}"].Value}",
-                    CountryCode = $"{worksheet.Cells[$"V{row}"].Value}",
+                    CountryCode = $"{worksheet.Cells[$"V{row}"].Value}".ToUpper(),
                     Phone = $"{worksheet.Cells[$"W{row}"].Value}",
                     IdNo = $"{worksheet.Cells[$"X{row}"].Value}",
                     TaxNo = $"{worksheet.Cells[$"Y{row}"].Value}",
@@ -102,7 +103,7 @@ public class ExcelService(
                     City = $"{worksheet.Cells[$"AD{row}"].Value}",
                     State = $"{worksheet.Cells[$"AE{row}"].Value}",
                     Zip = $"{worksheet.Cells[$"AF{row}"].Value}",
-                    CountryCode = $"{worksheet.Cells[$"AG{row}"].Value}",
+                    CountryCode = $"{worksheet.Cells[$"AG{row}"].Value}".ToUpper(),
                     Phone = $"{worksheet.Cells[$"AH{row}"].Value}",
                     Email = $"{worksheet.Cells[$"AI{row}"].Value}",
                     IdNo = $"{worksheet.Cells[$"AJ{row}"].Value}",
@@ -297,6 +298,7 @@ public class ExcelService(
             ws.Cells[$"X{iRow}"].Value = "Over Limit";
             ws.Cells[$"Y{iRow}"].Value = "Excess Volume";
             ws.Cells[$"Z{iRow}"].Value = "Void Date";
+            ws.Cells[$"AA{iRow}"].Value = "Is Refunded";
         }
         else
         {
@@ -330,7 +332,7 @@ public class ExcelService(
             ws.Cells[$"Q{iRow}"].Value = item.ZonePrice;
             var rng = ws.Cells[$"R{iRow}"];
             if ($"{item.ServiceCode}".Contains("usps", StringComparison.OrdinalIgnoreCase) &&
-                item.TrackIds.NotIsNullOrEmpty())
+                item.TrackIds.NotIsNullOrEmpty() && item.ShipmentStatus == 2)
             {
                 rng.Hyperlink =
                     new Uri(
@@ -351,6 +353,7 @@ public class ExcelService(
                 ws.Cells[$"X{iRow}"].Value = item.OverLimitFee ?? 0;
                 ws.Cells[$"Y{iRow}"].Value = item.ExcessVolumeFee ?? 0;
                 ws.Cells[$"Z{iRow}"].Value = item.CancelLabelDate.ToDmy();
+                ws.Cells[$"AA{iRow}"].Value = item.ShipmentStatus == 5;
             }
             else
             {
@@ -441,6 +444,66 @@ public class ExcelService(
             oFind.Details.AddRange(lstDetail);
             await unitOfWork.RepositoryNew<CPrice>().UpdateAsync(oFind);
             await unitOfWork.CommitAndRemoveCache(CancellationToken.None, Caches.GetAllPriceCacheKey);
+            blnSaveAll = true;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+
+        return blnSaveAll;
+    }
+
+    private async Task<bool> AddRefundData(ExcelWorksheet worksheet, bool isCheck = true)
+    {
+        var blnSaveAll = false;
+        var lstDetail = new List<RefundDataDto>();
+        var rowCount = worksheet.Dimension.Rows;
+        for (var row = 2; row <= rowCount; row++)
+        {
+            var dDate = $"{worksheet.Cells[$"B{row}"].Value}".ConvertToDate();
+            if (dDate != null)
+            {
+                lstDetail.Add(new RefundDataDto()
+                {
+                    RefundDate = dDate.Value,
+                    TrackId = $"{worksheet.Cells[$"G{row}"].Value}"
+                });
+            }
+        }
+
+        if (lstDetail.Count == 0) return false;
+        try
+        {
+            var dMin = lstDetail.Min(x => x.RefundDate);
+            var dMax = lstDetail.Max(x => x.RefundDate);
+            dMin = dMin.AddDays(-1).ToUtc();
+            dMax = dMax.AddDays(1).ToUtc();
+            var lstChecked = await unitOfWork.RepositoryNew<CShipment>().Entities
+                .Where(w => w.CancelLabelDate >= dMin && w.CancelLabelDate <= dMax && w.ShipmentStatus == 3)
+                .Select(s => new
+                {
+                    s.Id,
+                    s.TrackIds
+                })
+                .ToListAsync();
+            if (lstChecked.Count == 0) return true;
+            var lstIds = lstDetail.Select(s => s.TrackId).ToList();
+            var lstUIds = lstChecked.Where(w => lstIds.Contains($"{w.TrackIds}")).Select(s => s.Id).ToList();
+            if (lstUIds.Count == 0) return true;
+            var iPageSize = 50;
+            var iPages = (int)Math.Ceiling(lstUIds.Count / (double)iPageSize);
+            for (var page = 1; page <= iPages; page++)
+            {
+                var iUps = lstUIds.Skip((page - 1) * iPageSize).Take(iPageSize).ToList();
+                if (iUps is { Count: > 0 })
+                {
+                    await unitOfWork.RepositoryNew<CShipment>().Entities.Where(w => iUps.Contains(w.Id))
+                        .ExecuteUpdateAsync(x => x.SetProperty(b => b.ShipmentStatus, isCheck ? 5: 3));
+                }
+            }
+
             blnSaveAll = true;
         }
         catch (Exception e)
